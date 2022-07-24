@@ -1,15 +1,18 @@
 from typing import List
 import uuid
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
-
 
 app = FastAPI()
 
 # keeping the html data seperate to de-clog this file
-with open("index.html", "r") as f:
+with open("./index.html", "r") as f:
     html  = f.read()
 
+@app.get("/")
+async def get():
+    return HTMLResponse(html)
 
 class User:
    def __init__(self):
@@ -38,18 +41,25 @@ class Lobby:
         for user in self.users:
             await user.socket.send_text(message)
 
+    async def broadcastAll(self):
+        for user in self.users:
+            await self.broadcast(user.sentence)
+    
+    def clearAllSentences(self):
+        for user in self.users:
+            user.sentence = None
 
-manager = Lobby()
-
-
-@app.get("/")
-async def get():
-    return HTMLResponse(html)
-
-
-
+    async def everyoneSentMessage(self):
+        flag = True
+        for user in self.users:
+            if user.sentence is None:
+                flag = False
+            print(user.sentence)
+        return flag
 
 word = "Gregarious"
+manager = Lobby()
+# source ../myenv/bin/activate
 
 # server sends the word of the day to the lobby
 async def send_word():  
@@ -57,9 +67,6 @@ async def send_word():
     await manager.broadcast(f"The Word is... {word}")
     return True
     
-
-
-
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket:WebSocket, client_id:int):
@@ -69,29 +76,16 @@ async def websocket_endpoint(websocket:WebSocket, client_id:int):
     user.userid = client_id
     
     await manager.connect(user)
+    await send_word()
+    
     try:
-        
-        word_sent = False
-        while not word_sent: # block untill we have (2) players in the lobby to send the word
-            word_sent = await send_word()
-        
-        # make the sentence time
-        while not all([i.sentence for i in manager.users]): # block untill all the users send a sentence 
-            data = await user.socket.receive_text()
-            user.sentence = data
-        print(data)
-        await manager.broadcast(user.sentence) # send everones sentences 
-
-        # ... now what? vote? refactor?
-            
-        ### from quickstart page
-        # while True:
-        #     data = await websocket.receive_text()
-            
-        #     await manager.send_personal_message(f"You wrote: {data}", websocket)
-        #     await manager.broadcast(f"Client #{client_id} says: {data}")
-        
-    # acknowledge a user leaving the server
+        while True:
+            user.sentence = await user.socket.receive_text()
+            print('This is', user.userid, '---', user.sentence)
+            if await manager.everyoneSentMessage():
+                await manager.broadcastAll()
+                manager.clearAllSentences()
+                
     except WebSocketDisconnect:
         manager.disconnect(user)
         await manager.broadcast(f"Client #{client_id} left the chat")
