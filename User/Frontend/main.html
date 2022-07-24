@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script ></script>
+    <script>
+        // specify theme for tailwind use
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        linen: "#ffede1",
+                        ivory: "#f9fbf2",
+                        'light-cyan': "#d7f9ff",
+                        'baby-blue-eyes': "#afcbff",
+                        'oxford-blue': "#0e1c36",
+                    }
+                }
+            }
+        }
+    </script>
+    <!--Main js file-->
+    <script src="static/main.js"></script>
+
+</head>
+
+<body class="bg-baby-blue-eyes">
+    <div class="h-64 bg-oxford-blue">
+        <h2 class="text-7xl text-center text-ivory pt-14 font-mono align-middle">
+            SummerCodeJam
+        </h2>
+        <h3 class="text-m text-linen font-mono mt-5 text-center">
+            A thing we are in fact doing.
+        </h3>
+    </div>
+    <div class="m-8 rounded-l-lg bg-light-cyan grid grid-cols-5">
+        <div class="h-full shadow-md bg-white px-1 col-span-1 rounded-l-lg">
+            <ul class="relative">
+                <template x-data="" x-for="user in $store.lobby.users">
+                    <li class="relative">
+                        <div x-text="user" class="flex items-center text-sm py-4 px-6 
+             h-12 overflow-hidden text-oxford-blue text-ellipsis 
+             whitespace-nowrap rounded hover:text-gray-900 
+             hover:bg-linen transition 
+             duration-300 ease-in-out mt-1" data-mdb-ripple="true" data-mdb-ripple-color="dark"></div>
+                    </li>
+                </template>
+            </ul>
+        </div>
+        <div class="mx-8 col-span-4">
+
+            <template x-data="" x-for="sentence in $store.lobby.sentences" :key="sentence.id">
+                <div class="my-4 bg-ivory rounded-lg shadow-md p-6 border-oxford-blue border-1">
+                    <div class="flex flex-row 
+            justify-between border-b border-oxford-blue">
+                        <span class="text-oxford-blue" x-text="sentence.user"></span>
+                        <span class="text-gray-400" x-text="sentence.id"></span>
+                    </div>
+                    <div class="my-4 text-oxford-blue" x-text="sentence.text"></div>
+                </div>
+            </template>
+        </div>
+    </div>
+    </div>
+</body>
+
+</html>
