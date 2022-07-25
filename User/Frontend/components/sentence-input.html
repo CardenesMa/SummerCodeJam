@@ -24,7 +24,9 @@
         }
     </script>
     <!--Main js file-->
-    <script src="static/main.js"></script>
+    <script src="../static/main.js"></script>
+    <!--component js file-->
+    <script src="sentence-input.js"></script>
 
 </head>
 
@@ -63,6 +65,17 @@
                     <div class="my-4 text-oxford-blue" x-text="sentence.text"></div>
                 </div>
             </template>
+            <form class="my-8 w-full">
+                <div class="flex items-center border-b border-teal-500 py-2">
+                    <input class="appearance-none bg-transparent border-none w-full text-gray-700 mr-3 py-1 px-2 leading-tight focus:outline-none" type="text" placeholder="Type a sentence quickly!">
+                    <span x-data="timer(20)" x-text="timeLimit" class="flex-shrink-0 border-transparent border-4 font-black text-oxford-blue text-lg mx-8">
+                    </span>
+                    <button class=" bg-oxford-blue hover:bg-teal-700 border-oxford-blue hover:border-teal-700 text-sm border-4 text-white py-1 px-2 rounded" type="button">
+                    Submit
+                    </button>
+                </div>
+            </form>
+
         </div>
     </div>
     </div>
