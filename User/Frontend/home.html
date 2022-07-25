@@ -113,14 +113,17 @@
     </style>
 
     <script>function determineUserId() {
-        // add logic to check if the user already has a uuid in their cookies
-        // this was at first a uuid but it needs to be an int for the url
-        // we need to find a way to turn the uuid into something usable for /ws/uuid
-        customuuid = Math.floor(Math.random() * 100) + 1;
-        // store the uuid in a cookie
-        document.cookie = "uuid=" + customuuid;
-    
-        return customuuid;
+      // check to see if it's a cookie yet
+        let c = document.cookie;
+        let uuid = c.split("=")[1];
+        // if not exist, make one
+        if(uuid==undefined){
+          customuid = parseInt(crypto.randomUUID(),16);
+          document.cookie="uuid="+customuuid;
+        } else{
+          customuuid = uuid;
+          console.log("Uuid already exists : ", customuuid);
+        }
       }
     
       var client_id = determineUserId();
