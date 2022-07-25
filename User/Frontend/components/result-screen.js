@@ -55,29 +55,3 @@ document.addEventListener('alpine:init', () => {
         }
     })
 })
-
-
-function sentenceTimerComponent(periodInMs) {
-    return {
-        period: periodInMs,
-        start: Date.now(),
-        current: 0,
-        init() {
-            console.log("init")
-            setInterval(
-                () => {
-                    console.log("here")
-                    this.current = Date.now() - this.start;
-                    console.log(this.start)
-                }, 1000
-            )
-        },
-        getProportion() {
-            if (this.period === 0) return "100%";
-            proportion = Math.round((this.current / this.period) * 100);
-            if (proportion < 0) {proportion = 0}
-            else if (proportion > 100) {proportion = 100}
-            return String(proportion) + "%";
-        }
-    }
-}

@@ -6,6 +6,7 @@
         <script src="https://cdn.tailwindcss.com"></script>
         <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
         <script src="./result-screen.js"></script>
+        <script src="./timer-component.js"></script>
     </head>
     <body class="bg-baby-blue-eyes">
         <div class="h-64 bg-oxford-blue">
@@ -16,12 +17,12 @@
                 A thing we are in fact doing.
             </h3>
         </div>
-        <!-- div for a loading barm note duration-1000 matches the 
-             sentenceTimerComponent's interval function being called
+        <!-- div for a loading bar note duration-1000 matches the 
+             timerComponents's interval function being called
              every 1000 ms. These two should always match.
         -->
         <div class="w-full bg-gray-200 h-3" 
-        x-data="sentenceTimerComponent(20000)"
+        x-data="timerComponent(20000)"
         x-init="init()">
             <div 
             class="bg-blue-600 h-3 transition-timer-width 
