@@ -40,6 +40,7 @@
         I guess this is a thing we're doing.
       </h3>
     </div>
+    <div class="total-input-container">
     <div class="container">
       <form class="joinform" action="javascript:void(0);" onsubmit="joinLobby()">
         <input type="text" id="lobbyinput" autocomplete="off" />
@@ -58,6 +59,7 @@
         Create Lobby
       </button>
     </div>
+  </div>
 
     <div id="servermessages">
         <h1>Server Messages:</h1>
@@ -110,6 +112,10 @@
         margin-top:20%;
 
       }
+      .total-input-container{
+        display:block;
+        transform: (50%, 50%);
+      }
     </style>
 
     <script>function determineUserId() {
@@ -124,6 +130,7 @@
           customuuid = uuid;
           console.log("Uuid already exists : ", customuuid);
         }
+        return customuuid
       }
     
       var client_id = determineUserId();

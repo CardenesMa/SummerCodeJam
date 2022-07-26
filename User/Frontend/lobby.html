@@ -1,27 +1,149 @@
-
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>tle>
+  <head>
+    <title>Lobby</title>
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <script>
+      // copied from Lancelot's main.html on Jul 24th
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              linen: "#ffede1",
+              ivory: "#f9fbf2",
+              "light-cyan": "#d7f9ff",
+              "baby-blue-eyes": "#afcbff",
+              "oxford-blue": "#0e1c36",
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body>
+    <div class="h-64 bg-oxford-blue">
+      <h2
+        class="text-7xl text-center text-ivory pt-14 font-mono align-middle lobbymessage"
+        id="lobbycontainer"
+      >
+        Your Lobby Id:
+      </h2>
+      <div class="lobby-id-container">
+        <h3
+          class="text-7xl text-linen font-mono mt-5 text-center oxford-blue"
+          style="color: #0e1c36;"
+          id="lobbyid-display"
+        ></h3>
+      </div>
+    </div>
 
-        <!-- CSS only -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
-    </head>
-    <body>
+    
+
+    <div
+      class="usercontainer container my-4 bg-ivory rounded-lg shadow-sm p-4 border-oxford-blue"
+    >
+    <h1 class="text-5xl" style="display: inline; vertical-align: middle;">Connected Users:</h1>
+    <div class="start-game-container text-right" style="display: inline-flex; justify-content: right; vertical-align: mdidle; ">
+        <button onclick="start_game()" class="btn-success btn btn-lg start-game-button">
+          Start Game
+        </button>
+      </div>
+      <div class="users-list"></div>
+    </div>
+
+    <script>
+      // this makes the user id if it doesn't exist, or if it does, then gets it from the cookies
+      function determineUserId() {
+        let c = document.cookie;
+        let uuid = c.split("=")[1];
+
+        if (uuid == undefined) {
+          customuid = parseInt(crypto.randomUUID(), 16);
+          document.cookie = "uuid=" + customuuid;
+        } else {
+          customuuid = uuid;
+          console.log("Uuid already exists : ", customuuid);
+        }
+
+        return customuuid;
+      }
+      var client_id = determineUserId();
+      var ws = new WebSocket(`ws://localhost:8000/ws/${client_id}`);
+
+      ////////
+      // this is only here for now since the server echos every request for now
+      ex_request = {
+        action: "SendLobby",
+        payload: {
+          lobbyId: "asdf",
+        },
+      };
+
+      ws.onopen = function (e) {
+        ws.send(JSON.stringify(ex_request));
+      };
+
+      //////////////// end example request
+
+      ws.onmessage = function (event) {
+        try {
+          // turn the meessage into a json
+          var data = JSON.parse(event.data);
+          console.log(data);
+
+          // get the lobby id from the server
+          if (data.action == "SendLobby") {
+            lobby_id = data.payload.lobbyId;
+            console.log(lobby_id);
+            // put the lobby id information onto the page
+            var messagearea = document.getElementById("lobbyid-display");
+            messagearea.textContent = lobby_id;
+          }
+        } catch {
+          console.log(`Data sent wasn't JSON. It said ${event.data}`);
+        }
+      };
+
+      function start_game() {
+        packet = {
+          action: "StartGame",
+          payload: {},
+        };
+        ws.send(JSON.stringify(packet));
+      }
+    </script>
+
+    <style>
+        body{
+            background : #ffede1;
+        }
+        .lobby-id-container{
+            background:white;
+            margin-left:40%;
+            margin-right:40%;
+            margin-top:2rem;
+        }
         
-    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd"></script>
-    </body>
+    </style>
+    <script
+      src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+      integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+      integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/js/bootstrap.min.js"
+      integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd"
+    ></script>
+  </body>
 </html>
-
-<!--
-
-    Greeting page
-    | Join Page
-        | Lobby
-        | Game page
-    | Create Page
-        | Lobby
-        | Game page
--->
