@@ -1,7 +1,8 @@
 // class for storing states 
 function states() {
     return {
-        joinedLobby : false
+        joinedLobby : false,
+        gameStarted : false,
     }
 }
 

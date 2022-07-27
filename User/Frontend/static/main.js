@@ -20,19 +20,35 @@ tailwind.config = {
 // alpine is initiated (not to be confused with alpine:initalized)
 document.addEventListener('alpine:init', () => {
     Alpine.store('lobby', {
-        sentences: [
-            { id: 0, text: "Hello there!", user: "Jimmy" },
-            { id: 1, text: "Hello World!", user: "John" },
-            { id: 2, text: "The snail eats the donut", user: "Jane" },
+        users: [
+            {
+                name : "marcoiguess",
+                completed : false,  
+           },
+            {
+                name : "Harsha",
+                completed : false,  
+           },
+            {
+                name : "CupoGeo",
+                completed : false,  
+           },
+            {
+                name : "Lancelot",
+                completed : false,  
+           },
         ],
-        users: ["Jimmy", "John", "Jane"]
     });
+
+    Alpine.store('prompt', "Snails are sometimes sad");
 
     setTimeout(() => {
         // testing if async update works well with alpine
-        Alpine.store('lobby').users.push("Tim");
-        Alpine.store('lobby').sentences.push({ id: 3, text: "Surprise sentence!", user: "Tim" });
-    }, 1000);
+        Alpine.store('lobby').users.push({
+            name : "Tim",
+            completed : false
+        });
+    }, 3000);
 })
 
 function lobbyIdInp() {
@@ -40,9 +56,31 @@ function lobbyIdInp() {
         lobbyId : '',
         username : '',
         submit() {
+
             Alpine.store('lobbyId', this.lobbyId);
             Alpine.store('username', this.username);
             Alpine.store('states').joinedLobby = true;
+            Alpine.store("lobby").users.push({
+                name: this.username,
+                completed: false
+            });
         }
     }
 }
+
+// Timer for sentence input
+function timer(timeLimit) {
+    return {
+        timeLimit : timeLimit,
+        init() {
+            var timeInterval = setInterval(() => 
+            {
+                this.timeLimit--;
+                if (this.timeLimit < 0) {
+                    this.timeLimit = "Time is up!";
+                    clearInterval(timeInterval)
+                }
+            }, 1000)
+        }
+    }
+} 

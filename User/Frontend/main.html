@@ -11,6 +11,11 @@
     <!--Main js file. Handles states-->
     <script src="states.js"></script>
     <script src="static/main.js"></script>
+    <style>
+        .is-user {
+            background-color: blanchedalmond;
+        }
+    </style>
 
 </head>
 
@@ -28,8 +33,8 @@
     <!--Lobby ID input-->
     <template x-data="lobbyIdInp()" x-if="!$store.states.joinedLobby">
         <form @submit.prevent="submit()" class="flex flex-col justify-center items-center">
-            <input required class="my-12 appearance-none block w-2/6 bg-gray-200 text-gray-700 border rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white" id="grid-first-name" type="text" placeholder="Enter Your Lobby ID">
-            <input required class="appearance-none block w-2/6 bg-gray-200 text-gray-700 border rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white" id="grid-first-name" type="text" placeholder="Enter a Name">
+            <input x-model="lobbyId" required class="my-12 appearance-none block w-2/6 bg-gray-200 text-gray-700 border rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white" id="grid-first-name" type="text" placeholder="Enter Your Lobby ID">
+            <input x-model="username" required class="appearance-none block w-2/6 bg-gray-200 text-gray-700 border rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white" id="grid-first-name" type="text" placeholder="Enter a Name">
             <button type="submit" class="shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded" type="button">
                 Join Lobby!
             </button>
@@ -37,38 +42,70 @@
     </template>
 
     
-    <!--Lobby components-->
-    <template x-if="true">
+    <!--Waiting room components-->
+    <template x-data x-if="$store.states.joinedLobby && !$store.states.gameStarted">
+        <div class="m-8 rounded">
+            <!--Lobby id display-->
+            <div class="flex justify-center items-center">
+                <h1 x-text="$store.lobbyId" class=" my-1 text-center font-bold text-2xl w-1/6 bg-white text-oxford-blue"></h1>
+            </div>
+            <div class="h-full shadow-md bg-white px-1 col-span-1 rounded-l-lg">
+                <ul class="relative">
+                    <template x-data="" x-for="user in $store.lobby.users">
+                        <li class="">
+                            <div x-text="user.name" class="flex justify-center items-center py-4 px-6 
+                h-12 overflow-hidden text-2xl text-oxford-blue text-ellipsis 
+                whitespace-nowrap rounded hover:text-gray-900 
+                hover:bg-linen transition 
+                duration-300 ease-in-out mt-1" :class="{ 'is-user' : user.name === $store.username }" data-mdb-ripple="true" data-mdb-ripple-color="dark"></div>
+                        </li>
+                    </template>
+                </ul>
+            </div>
+            <h1 class="mt-8 text-center font-bold text-2xl text-oxford-blue">Players: <span x-text="$store.lobby.users.length"></span></h1>
+            <!-- Fake transition for testing-->
+            <div class="flex justify-center items-center ">
+                <button @click="$store.states.gameStarted = true"  class="my-4 shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded" type="button">
+                    Continue for testing
+                </button>
+            </div>
+        </div>
+   </template>
+   <!--Show prompt and sentence input-->
+   <template x-if="$store.states.gameStarted" x-data >
         <div class="m-8 rounded-l-lg bg-light-cyan grid grid-cols-5">
             <div class="h-full shadow-md bg-white px-1 col-span-1 rounded-l-lg">
                 <ul class="relative">
                     <template x-data="" x-for="user in $store.lobby.users">
                         <li class="relative">
-                            <div x-text="user" class="flex items-center text-sm py-4 px-6 
+                            <div x-text="user.name" class="flex items-center text-sm py-4 px-6 
                 h-12 overflow-hidden text-oxford-blue text-ellipsis 
                 whitespace-nowrap rounded hover:text-gray-900 
                 hover:bg-linen transition 
-                duration-300 ease-in-out mt-1" data-mdb-ripple="true" data-mdb-ripple-color="dark"></div>
+                duration-300 ease-in-out mt-1" :class="{ 'is-user' : user.name === $store.username }" data-mdb-ripple="true" data-mdb-ripple-color="dark"></div>
                         </li>
                     </template>
                 </ul>
             </div>
             <div class="mx-8 col-span-4">
 
-                <template x-data="" x-for="sentence in $store.lobby.sentences" :key="sentence.id">
-                    <div class="my-4 bg-ivory rounded-lg shadow-md p-6 border-oxford-blue border-1">
-                        <div class="flex flex-row 
-                justify-between border-b border-oxford-blue">
-                            <span class="text-oxford-blue" x-text="sentence.user"></span>
-                            <span class="text-gray-400" x-text="sentence.id"></span>
-                        </div>
-                        <div class="my-4 text-oxford-blue" x-text="sentence.text"></div>
+                <form class="my-8 w-full">
+                    <h1 class="mt-8 text-center font-bold text-2xl text-oxford-blue" x-data="" x-text="$store.prompt"></h1>
+                    <div class="flex items-center border-b border-teal-500 py-2">
+                        <input class="appearance-none bg-transparent border-none w-full text-gray-700 mr-3 py-1 px-2 leading-tight focus:outline-none" type="text" placeholder="Type a sentence quickly!">
+                        <span x-data="timer(20)" x-text="timeLimit" class="flex-shrink-0 border-transparent border-4 font-black text-oxford-blue text-lg mx-8">
+                        </span>
+                        <button class="mt-2 shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded" type="button">
+                        Submit
+                        </button>
                     </div>
-                </template>
+
+                </form>
+
             </div>
         </div>
         </div>
-    </template>
+   </template>
 </body>
 
 </html>
