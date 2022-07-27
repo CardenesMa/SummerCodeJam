@@ -3,6 +3,8 @@ function states() {
     return {
         joinedLobby : false,
         gameStarted : false,
+        submittedSentence : false,
+        timeOver : false,
     }
 }
 

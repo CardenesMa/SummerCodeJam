@@ -15,6 +15,9 @@
         .is-user {
             background-color: blanchedalmond;
         }
+        .submitted {
+            background-color: greenyellow;
+        }
     </style>
 
 </head>
@@ -53,6 +56,7 @@
                 <ul class="relative">
                     <template x-data="" x-for="user in $store.lobby.users">
                         <li class="">
+                            <!-- show users in lobby -->
                             <div x-text="user.name" class="flex justify-center items-center py-4 px-6 
                 h-12 overflow-hidden text-2xl text-oxford-blue text-ellipsis 
                 whitespace-nowrap rounded hover:text-gray-900 
@@ -72,38 +76,56 @@
         </div>
    </template>
    <!--Show prompt and sentence input-->
-   <template x-if="$store.states.gameStarted" x-data >
-        <div class="m-8 rounded-l-lg bg-light-cyan grid grid-cols-5">
-            <div class="h-full shadow-md bg-white px-1 col-span-1 rounded-l-lg">
-                <ul class="relative">
-                    <template x-data="" x-for="user in $store.lobby.users">
-                        <li class="relative">
-                            <div x-text="user.name" class="flex items-center text-sm py-4 px-6 
-                h-12 overflow-hidden text-oxford-blue text-ellipsis 
-                whitespace-nowrap rounded hover:text-gray-900 
-                hover:bg-linen transition 
-                duration-300 ease-in-out mt-1" :class="{ 'is-user' : user.name === $store.username }" data-mdb-ripple="true" data-mdb-ripple-color="dark"></div>
-                        </li>
-                    </template>
-                </ul>
+   <template x-data x-if="$store.states.gameStarted && !$store.states.timeOver">
+        <div x-data="timerComponent($store.prompt.limit * 1000, promptLimitOver)">
+            <!--Loading bar at top of screen -->
+            <div x-data 
+                class="w-full bg-gray-200 h-3" 
+                x-init="init()">
+                    <div 
+                    class="bg-blue-600 h-3 transition-timer-width 
+                    ease-linear duration-1000" 
+                    :style="'width: ' + getProportion()"
+                    
+                    ></div>
             </div>
-            <div class="mx-8 col-span-4">
+            <div class="m-8 rounded-l-lg bg-light-cyan grid grid-cols-5">
+                <!--Side bar-->
+                <div class="h-full shadow-md bg-white px-1 col-span-1 rounded-l-lg">
+                    <ul class="relative">
+                        <template x-data="" x-for="user in $store.lobby.users">
+                            <li class="relative">
+                                <div x-text="user.name" class="flex items-center text-sm py-4 px-6 
+                    h-12 overflow-hidden text-oxford-blue text-ellipsis 
+                    whitespace-nowrap rounded hover:text-gray-900 
+                    hover:bg-linen transition 
+                    duration-300 ease-in-out mt-1" :class="{ 
+                        'is-user' : user.name === $store.username,
+                        'submitted' : user.completed 
+                    }" data-mdb-ripple="true" data-mdb-ripple-color="dark"></div>
+                <!--clases above indicate if the shown user is the current player and if the shown player has submitted a sentence -->
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+                <div class="mx-8 col-span-4">
 
-                <form class="my-8 w-full">
-                    <h1 class="mt-8 text-center font-bold text-2xl text-oxford-blue" x-data="" x-text="$store.prompt"></h1>
-                    <div class="flex items-center border-b border-teal-500 py-2">
-                        <input class="appearance-none bg-transparent border-none w-full text-gray-700 mr-3 py-1 px-2 leading-tight focus:outline-none" type="text" placeholder="Type a sentence quickly!">
-                        <span x-data="timer(20)" x-text="timeLimit" class="flex-shrink-0 border-transparent border-4 font-black text-oxford-blue text-lg mx-8">
-                        </span>
-                        <button class="mt-2 shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded" type="button">
-                        Submit
-                        </button>
-                    </div>
+                    <form class="my-8 w-full">
+                        <h1 class="mt-8 text-center font-bold text-2xl text-oxford-blue" x-data="" x-text="$store.prompt.text"></h1>
+                        <!--Sentence input form-->
+                        <div class="flex items-center border-b border-teal-500 py-2">
+                            <input class="appearance-none bg-transparent border-none w-full text-gray-700 mr-3 py-1 px-2 leading-tight focus:outline-none" type="text" placeholder="Type a sentence quickly!">
+                            <span x-data="timer($store.prompt.limit)" x-text="timeLimit" class="flex-shrink-0 border-transparent border-4 font-black text-oxford-blue text-lg mx-8">
+                            </span>
+                            <button type="submit" class="mt-2 shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded" type="button">
+                            Submit
+                            </button>
+                        </div>
 
-                </form>
+                    </form>
 
+                </div>
             </div>
-        </div>
         </div>
    </template>
 </body>
