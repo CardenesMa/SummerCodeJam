@@ -164,7 +164,17 @@ function timerComponent(periodInMs, callback) {
     }
 }
 
+function sendVote(id) {
+    // TODO: send vote
+    Alpine.store('states').voted = true;
+}
+
 // callback function for when sentence input time is over
 var promptLimitOver = () => {
-    Alpine.store('states').timeOver = true;
+    Alpine.store('states').awaitingSentences = false;
+}
+
+// callback for voting
+var votingTimeOver = () => {
+    Alpine.store('states').awaitingVotes = false;
 }

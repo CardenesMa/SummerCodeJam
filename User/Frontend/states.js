@@ -4,8 +4,9 @@ function states() {
         joinedLobby : false,
         gameStarted : false,
         submittedSentence : false,
-        timeOver : false,
+        awaitingSentences : true,
         voted : false,
+        awaitingVotes : true,
     }
 }
 

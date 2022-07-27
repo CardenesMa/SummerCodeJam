@@ -88,7 +88,7 @@
         </div>
     </template>
     <!--Show prompt and sentence input-->
-    <template x-data x-if="$store.states.gameStarted && !$store.states.timeOver">
+    <template x-data x-if="$store.states.gameStarted && $store.states.awaitingSentences">
         <div x-data="timerComponent($store.prompt.limit * 1000, promptLimitOver)">
             <!--Loading bar at top of screen. Create timer with a time limit given by the prompt -->
             <div x-data class="w-full bg-gray-200 h-3" x-init="init()">
@@ -142,13 +142,13 @@
         </div>
     </template>
     <!--Voting template-->
-    <template x-data x-if="$store.states.timeOver">
+    <template x-data x-if="$store.states.awaitingVotes && !$store.states.awaitingSentences">
         <div>
             <!-- div for a loading bar note duration-1000 matches the 
                 timerComponents's interval function being called
                 every 1000 ms. These two should always match.
             -->
-            <div class="w-full bg-gray-200 h-3" x-data="timerComponent($store.votingTime)" x-init="init()">
+            <div class="w-full bg-gray-200 h-3" x-data="timerComponent($store.votingTime, votingTimeOver)" x-init="init()">
                 <div class="bg-green-400 h-3 transition-timer-width 
                 ease-linear duration-1000" :style="'width: ' + getProportion()"></div>
             </div>
@@ -170,12 +170,13 @@
                             <div class="flex justify-center">
                                     <div class="my-4 text-2xl text-oxford-blue" x-text="user.sentence"></div>
                             </div>
-                            <!-- vote button -->
-                            <button class="w-full h-12 px-6 text-green-100 transition-colors duration-150 bg-green-400 rounded-lg focus:shadow-outline hover:bg-green-500">Vote</button>
+                            <!-- vote button. sendVote needs to change to use an actual id instead. -->
+                            <template x-data x-if="!$store.states.voted">
+                                <button @click="sendVote(user.name)" class="w-full h-12 px-6 text-green-100 transition-colors duration-150 bg-green-400 rounded-lg focus:shadow-outline hover:bg-green-500">Vote</button>
+                            </template>
                         </div>
                     </template>
                 </template>
-
             </div>
         </div>
     </template>
