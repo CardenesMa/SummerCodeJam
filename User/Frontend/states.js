@@ -5,6 +5,7 @@ function states() {
         gameStarted : false,
         submittedSentence : false,
         timeOver : false,
+        voted : false,
     }
 }
 

@@ -24,35 +24,58 @@ document.addEventListener('alpine:init', () => {
             {
                 name : "marcoiguess",
                 completed : false,  
+                sentence : "The snail crawls Slowly. Salted, his beloved was. Springtime arrives ne'r",
+                votes : 0,
            },
             {
                 name : "Harsha",
                 completed : true,  
+                sentence: "The snail could not find any yummy leaves.",
+                votes : 3,
            },
             {
                 name : "CupoGeo",
                 completed : false,  
+                sentence: "I HATE snails.",
+                votes : 2,
            },
             {
                 name : "Lancelot",
                 completed : false,  
+                sentence: null,
+                votes : 1,
            },
         ],
     });
 
     Alpine.store('prompt', {
         text : "Snails are sometimes sad",
-        limit : 7 // secs given to write a sentecne for the prompt
+        limit : 4 // secs given to write a sentecne for the prompt
     });
+    Alpine.store('votingTime', 10000);
 
     setTimeout(() => {
         // testing if async update works well with alpine
         Alpine.store('lobby').users.push({
             name : "Tim",
-            completed : false
+            completed : true,
+            sentence: null,
+            votes : 0,
         });
     }, 3000);
-})
+});
+
+function addSentence(user, sentence) {
+    // Go through the users list and update the user.sentence and user.completed vars
+    Alpine.store('lobby').users.forEach((i) => {
+        // this is the user passed through as an arg
+        if (i.name === user) {
+            i.sentence = sentence;
+            i.completed = true;
+            return;
+        }
+    });
+}
 
 function lobbyIdInp() {
     return {
@@ -65,8 +88,30 @@ function lobbyIdInp() {
             Alpine.store('states').joinedLobby = true;
             Alpine.store("lobby").users.push({
                 name: this.username,
-                completed: false
+                completed: false,
+                sentence : '',
+                votes : 1,
             });
+        }
+    }
+}
+
+function sentInp() {
+    return {
+        sentence : '',
+        submittedSent: '',
+
+        submit() {
+            // TODO: send sentence to server 
+            // for now just store in the user's class
+            if (this.sentence.length == 0) {
+                return;
+            }
+            addSentence(Alpine.store('username'), this.sentence);
+            Alpine.store("states").submittedSentence = true;
+            this.submittedSent = this.sentence;
+            // clear input
+            this.sentence = '';
         }
     }
 }
@@ -95,14 +140,13 @@ function timerComponent(periodInMs, callback) {
         start: Date.now(),
         current: 0,
         init() {
-            console.log("init")
             var timerInt = setInterval(
                 () => {
                     this.current = Date.now() - this.start;
                     if (this.current >= this.period) {
                         clearInterval(timerInt);
                         // when timer is done, call a function if provided
-                        if (callback !== null) {
+                        if (callback !== undefined) {
                             callback();
                         }
 
