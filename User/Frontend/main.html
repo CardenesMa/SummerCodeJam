@@ -180,6 +180,40 @@
             </div>
         </div>
     </template>
+    <template x-data x-if="!$store.states.awaitingVotes">
+        <div>
+            <div class="w-full bg-gray-200 h-3" 
+            x-data="timerComponent(5000)"
+            x-init="init()">
+                <div 
+                class="bg-blue-600 h-3 transition-timer-width 
+                ease-linear duration-1000" 
+                :style="'width: ' + getProportion()"
+                
+                ></div>
+            </div>
+
+            <h1 class="mt-8 text-center font-bold text-2xl text-oxford-blue" x-data="" x-text="$store.prompt.text"></h1>
+
+            <div class="m-8 rounded-lg bg-light-cyan py-1 px-3">
+                    <!-- Template for the list printing of the vote results,
+                         note that each object has a 'vis' property that gets
+                         updated on initiation, this is to trigger the transtion 
+                         on spawn once it gets updated by the init function-> nextick
+                    -->
+                    <template x-data="sortedSentences()" x-for="user in sentences">
+                        <div class="my-4 bg-ivory rounded-lg shadow-sm p-4 border-oxford-blue" x-transition.duration.500ms 
+                        x-data="{vis: false}" x-show="vis" x-init="$nextTick(() => {vis = true})">
+                            <div class="flex flex-row justify-between border-b border-oxford-blue">
+                                <span class="text-oxford-blue" x-text="user.name"></span>
+                                <span class="text-gray-800" x-text="'Votes: ' + user.votes"></span>
+                            </div>
+                            <div class="my-4 text-oxford-blue" x-text="user.sentence"></div>
+                        </div>
+                    </template>
+            </div>
+        </div>
+    </template>
 </body>
 
 </html>

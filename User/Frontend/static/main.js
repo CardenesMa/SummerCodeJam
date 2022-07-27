@@ -25,7 +25,7 @@ document.addEventListener('alpine:init', () => {
                 name : "marcoiguess",
                 completed : false,  
                 sentence : "The snail crawls Slowly. Salted, his beloved was. Springtime arrives ne'r",
-                votes : 0,
+                votes : 3,
            },
             {
                 name : "Harsha",
@@ -43,7 +43,7 @@ document.addEventListener('alpine:init', () => {
                 name : "Lancelot",
                 completed : false,  
                 sentence: null,
-                votes : 1,
+                votes : 0,
            },
         ],
     });
@@ -52,7 +52,7 @@ document.addEventListener('alpine:init', () => {
         text : "Snails are sometimes sad",
         limit : 4 // secs given to write a sentecne for the prompt
     });
-    Alpine.store('votingTime', 10000);
+    Alpine.store('votingTime', 2000);
 
     setTimeout(() => {
         // testing if async update works well with alpine
@@ -167,6 +167,20 @@ function timerComponent(periodInMs, callback) {
 function sendVote(id) {
     // TODO: send vote
     Alpine.store('states').voted = true;
+}
+
+// return sorted sentence list after voting is done
+var sortedSentences = () => {
+    return {
+        get sentences() {
+            return Alpine.store('lobby').users.sort((a, b) => {
+            av = a.votes;
+            bv = b.votes;
+            return (av < bv) ? -1 : ((av > bv) ? 1: 0);
+
+            }, ).reverse()
+        } 
+    }
 }
 
 // callback function for when sentence input time is over
