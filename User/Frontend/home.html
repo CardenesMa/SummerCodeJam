@@ -1,206 +1,243 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Welcome</title>
+	<head>
+		<title>Welcome</title>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script
-      defer
-      src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
-    ></script>
-    <link
-      rel="stylesheet"
-      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"
-    />
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-    <script>
-      // copied from Lancelot's main.html on Jul 24th
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              linen: "#ffede1",
-              ivory: "#f9fbf2",
-              "light-cyan": "#d7f9ff",
-              "baby-blue-eyes": "#afcbff",
-              "oxford-blue": "#0e1c36",
-            },
-          },
-        },
-      };
-    </script>
-  </head>
-  <body class="bg-baby-blue-eyes">
-    <div class="h-64 bg-oxford-blue">
-      <h2 class="text-7xl text-center text-ivory pt-14 font-mono align-middle">
-        SummerCodeJam
-      </h2>
-      <h3 class="text-m text-linen font-mono mt-5 text-center">
-        I guess this is a thing we're doing.
-      </h3>
-    </div>
-    <div class="total-input-container">
-    <div class="container">
-      <form class="joinform" action="javascript:void(0);" onsubmit="joinLobby()">
-        <input type="text" id="lobbyinput" autocomplete="off" />
-        <button class="btn btn-success btn-lg" id="joinlobby">
-          Join Lobby
-        </button>
-      </form>
-    </div>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script
+			defer
+			src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
+		></script>
+		<link
+			rel="stylesheet"
+			href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"
+		/>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+		<script>
+			// copied from Lancelot's main.html on Jul 24th
+			tailwind.config = {
+				theme: {
+					extend: {
+						colors: {
+							linen: "#ffede1",
+							ivory: "#f9fbf2",
+							"light-cyan": "#d7f9ff",
+							"baby-blue-eyes": "#afcbff",
+							"oxford-blue": "#0e1c36",
+						},
+					},
+				},
+			};
+		</script>
+	</head>
+	<body class="bg-baby-blue-eyes">
+		<div class="h-64 bg-oxford-blue">
+			<h2
+				class="text-7xl text-center text-ivory pt-14 font-mono align-middle"
+			>
+				SummerCodeJam
+			</h2>
+			<h3 class="text-m text-linen font-mono mt-5 text-center">
+				I guess this is a thing we're doing.
+			</h3>
+		</div>
+		<div class="total-input-container">
+			<div class="container">
+				<form
+					class="joinform"
+					action="javascript:void(0);"
+					onsubmit="joinLobby()"
+				>
+					<input type="text" id="lobbyinput" autocomplete="off" />
+					<button class="btn btn-success btn-lg" id="joinlobby">
+						Join Lobby
+					</button>
+				</form>
+			</div>
 
-    <div class="create-container">
-      <button
-        class="btn btn-primary btn-lg"
-        id="createlobby"
-        onclick="createLobby()"
-      >
-        Create Lobby
-      </button>
-    </div>
-  </div>
+			<div class="create-container">
+				<button
+					class="btn btn-primary btn-lg"
+					id="createlobby"
+					onclick="createLobby()"
+				>
+					Create Lobby
+				</button>
+			</div>
+		</div>
 
-    <div id="servermessages">
-        <h1>Server Messages:</h1>
-    </div>
+		<div id="servermessages">
+			<h1>Server Messages:</h1>
+		</div>
 
-    <style>
-      /* *{
-                border:1px red solid;
-            } */
+		<style>
+			/* *{
+				border:1px red solid;
+			} */
 
-      :root {
-        --dark: #0e1c36;
-        --dark-2: #afcbff;
-        --medium: #d7f9ff;
-        --light-2: #f9fbf2;
-        --light: #ffede1;
-      }
+			:root {
+				--dark: #0e1c36;
+				--dark-2: #afcbff;
+				--medium: #d7f9ff;
+				--light-2: #f9fbf2;
+				--light: #ffede1;
+			}
 
-      body {
-        background: var(--light);
-      }
+			body {
+				background: var(--light);
+			}
 
-      .btn {
-        margin-left: 1rem;
-        margin-right: 1rem;
-      }
+			.btn {
+				margin-left: 1rem;
+				margin-right: 1rem;
+			}
 
-      .joinform {
-        margin-top: 6rem;
-        margin-bottom: 3rem;
-        display: flex;
-        justify-content: center;
-      }
+			.joinform {
+				margin-top: 6rem;
+				margin-bottom: 3rem;
+				display: flex;
+				justify-content: center;
+			}
 
-      input {
-        border-radius: 0.5rem;
-        width: 20rem;
-        height: 5rem;
-        font-size: 3rem;
-        text-align: center;
-      }
+			input {
+				border-radius: 0.5rem;
+				width: 20rem;
+				height: 5rem;
+				font-size: 3rem;
+				text-align: center;
+			}
 
-      .create-container {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
+			.create-container {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
 
-      #servermessages{
-        margin-top:20%;
+			#servermessages {
+				margin-top: 20%;
+			}
+			.total-input-container {
+				display: block;
+				transform: (50%, 50%);
+			}
+		</style>
 
-      }
-      .total-input-container{
-        display:block;
-        transform: (50%, 50%);
-      }
-    </style>
+		<script>
+			var ws = new WebSocket(
+				`ws://localhost:8000/ws/${Math.floor(Math.random() * 100)}`
+			);
+			// this makes the user id if it doesn't exist, or if it does, then gets it from the cookies
 
-    <script>function determineUserId() {
-      // check to see if it's a cookie yet
-        let c = document.cookie;
-        let uuid = c.split("=")[1];
-        // if not exist, make one
-        if(uuid==undefined){
-          customuid = parseInt(crypto.randomUUID(),16);
-          document.cookie="uuid="+customuuid;
-        } else{
-          customuuid = uuid;
-          console.log("Uuid already exists : ", customuuid);
-        }
-        return customuuid
-      }
-    
-      var client_id = determineUserId();
-      var ws = new WebSocket(`ws://localhost:8000/ws/${client_id}`);
-    
-      // websocket stuff loading etc
-      ws.onmessage = function (event) {
-        // show the message on the site
-        var messagearea = document.getElementById("servermessages");
-        var message = document.createElement("h2");
-        var content = document.createTextNode(event.data);
-        message.appendChild(content);
-        messagearea.appendChild(message);
+			// Make the function wait until the connection is made...
+			function waitForSocketConnection(socket, callback) {
+				setTimeout(function () {
+					if (socket.readyState === 1) {
+						console.log("Connection is made");
+						if (callback != null) {
+							callback();
+						}
+					} else {
+						console.log("wait for connection...");
+						waitForSocketConnection(socket, callback);
+					}
+				}, 5); // wait 5 milisecond for the connection...
+			}
+			function send(msg) {
+				// Wait until the state of the socket is not ready and send the message when it is...
+				waitForSocketConnection(ws, function () {
+					console.log("message sent!!!");
+					ws.send(msg);
+				});
+			}
+
+			// check to see if the user has already connected.
+			// send a request if need be
+			if (localStorage.USER_INFO == undefined){
+				user_request_packet = {
+					action : "CreateUser",
+					payload : {}
+				};
+				send(JSON.stringify(user_request_packet));
+			}
 
 
-        // do some logic on the messsage to determine what to do. 
-        // try and catch are there becuase sometimes json isn't sent and it's just a normal string
-        try{
-        var data = JSON.parse(event.data);
-        console.log(data);
-        }
-        catch{
-            console.log(`Data sent wasn't JSON. It said ${event.data}`)
-        }
-        
+			// listen for messages
+			ws.onmessage = function (event) {
+				
+				// show the message on the site
+				var messagearea = document.getElementById("servermessages");
+				var message = document.createElement("h2");
+				var content = document.createTextNode("Server says : " + event.data);
+				message.appendChild(content);
+				messagearea.appendChild(message);
 
-        
-        
-    
-        // in case it doesn't work or just for funsies, log it
-      };
-    
-      // executed from html button on join lobby
-      function joinLobby() {
-        var input = document.getElementById("lobbyinput");
-    
-        packet = {
-          action: "JoinLobby",
-          payload: {
-            lobbyId: input.value,
-            privateId: client_id,
-          },
-        };
-        // send the packet through our websocket
-        ws.send(JSON.stringify(packet));
-        input.value = ""
-      }
-    
-      function createLobby() {
-        create_packet = {
-          action: "CreateLobby",
-          payload: {
-            privateId: client_id,
-          },
-        };
-        ws.send(JSON.stringify(create_packet));
-      }</script>
+				// do some logic on the messsage to determine what to do.
+				// try and catch are there becuase sometimes json isn't sent and it's just a normal string
+				try {
+					var data = JSON.parse(event.data);
+					// the only info needed on the home page is the user info for now.
+					switch(data.action){
+						case "USER_INFO":
+						localStorage.publicUUID = data.payload.publicUUID;
+							localStorage.privateUUID = data.payload.privateUUID;
+							localStorage.chosenId = data.payload.chosenId;
+							break;
 
-    <!-- <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
-        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script> -->
-  </body>
+					}
+				
+
+				} catch {
+					console.log(`Data sent wasn't JSON. It said ${event.data}`);
+				}
+
+				// in case it doesn't work or just for funsies, log it
+			};
+
+
+			///////// METHODS TO SEND INFORMATION TO THE SERVER BASED ON DOM EVENTS ///////
+
+
+
+			// executed from html button on join lobby
+			function joinLobby() {
+				var input = document.getElementById("lobbyinput");
+
+				packet = {
+					action: "JoinLobby",
+					payload: {
+						lobbyId: input.value,
+						publicUUID : localStorage.publicUUID,
+					},
+				};
+				// send the packet through our websocket
+				send(JSON.stringify(packet));
+				input.value = "";
+			}
+
+			function createLobby() {
+				create_packet = {
+					action: "CreateLobby",
+					payload: {
+						privateId: localStorage.publicUUID,
+					},
+				};
+				send(JSON.stringify(create_packet));
+			}
+		</script>
+
+		<!-- <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+		<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script> -->
+	</body>
 </html>
 
 <!--
 
-    Greeting page
-    | Join Page
-        | Lobby
-        | Game page
-    | Create Page
-        | Lobby
-        | Game page
+	Greeting page
+	| Join Page
+		| Lobby
+		| Game page
+	| Create Page
+		| Lobby
+		| Game page
 -->

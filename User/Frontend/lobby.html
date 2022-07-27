@@ -1,149 +1,197 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Lobby</title>
-    <link
-      rel="stylesheet"
-      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"
-    />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-    <script>
-      // copied from Lancelot's main.html on Jul 24th
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              linen: "#ffede1",
-              ivory: "#f9fbf2",
-              "light-cyan": "#d7f9ff",
-              "baby-blue-eyes": "#afcbff",
-              "oxford-blue": "#0e1c36",
-            },
-          },
-        },
-      };
-    </script>
-  </head>
-  <body>
-    <div class="h-64 bg-oxford-blue">
-      <h2
-        class="text-7xl text-center text-ivory pt-14 font-mono align-middle lobbymessage"
-        id="lobbycontainer"
-      >
-        Your Lobby Id:
-      </h2>
-      <div class="lobby-id-container">
-        <h3
-          class="text-7xl text-linen font-mono mt-5 text-center oxford-blue"
-          style="color: #0e1c36;"
-          id="lobbyid-display"
-        ></h3>
-      </div>
-    </div>
+	<head>
+		<title>Lobby</title>
+		<link
+			rel="stylesheet"
+			href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"
+		/>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+		<script>
+			// copied from Lancelot's main.html on Jul 24th
+			tailwind.config = {
+				theme: {
+					extend: {
+						colors: {
+							linen: "#ffede1",
+							ivory: "#f9fbf2",
+							"light-cyan": "#d7f9ff",
+							"baby-blue-eyes": "#afcbff",
+							"oxford-blue": "#0e1c36",
+						},
+					},
+				},
+			};
+		</script>
+	</head>
+	<body class="font-mono">
+		<div class="h-64 bg-oxford-blue">
+			<h2
+				class="text-7xl text-center text-ivory pt-14 font-mono align-middle lobbymessage"
+				id="lobbycontainer"
+			>
+				Your Lobby Id:
+			</h2>
+			<div class="lobby-id-container">
+				<h3
+					class="text-7xl text-linen font-mono mt-5 text-center oxford-blue"
+					style="color: #0e1c36"
+					id="lobbyid-display"
+				></h3>
+			</div>
+		</div>
 
-    
+		<div
+			class="usercontainer container my-4 bg-ivory rounded-lg shadow-sm p-4 border-oxford-blue"
+		>
+			<div class="text-right">
+				<button
+					onclick="ready_up()"
+					class="btn-success btn btn-lg start-game-button text-right"
+				>
+					Ready Up
+				</button>
+			</div>
+			<h1 class="text-5xl" style="vertical-align: middle">
+				Connected Users:
+			</h1>
+			<div class="users-list-container">
+				<ul id="users-list"></ul>
+			</div>
+		</div>
 
-    <div
-      class="usercontainer container my-4 bg-ivory rounded-lg shadow-sm p-4 border-oxford-blue"
-    >
-    <h1 class="text-5xl" style="display: inline; vertical-align: middle;">Connected Users:</h1>
-    <div class="start-game-container text-right" style="display: inline-flex; justify-content: right; vertical-align: mdidle; ">
-        <button onclick="start_game()" class="btn-success btn btn-lg start-game-button">
-          Start Game
-        </button>
-      </div>
-      <div class="users-list"></div>
-    </div>
+		<script>
+			var ws = new WebSocket(
+				`ws://localhost:8000/ws/${Math.floor(Math.random() * 100)}`
+			);
+			// this makes the user id if it doesn't exist, or if it does, then gets it from the cookies
 
-    <script>
-      // this makes the user id if it doesn't exist, or if it does, then gets it from the cookies
-      function determineUserId() {
-        let c = document.cookie;
-        let uuid = c.split("=")[1];
+			// Make the function wait until the connection is made...
+			function waitForSocketConnection(socket, callback) {
+				setTimeout(function () {
+					if (socket.readyState === 1) {
+						console.log("Connection is made");
+						if (callback != null) {
+							callback();
+						}
+					} else {
+						console.log("wait for connection...");
+						waitForSocketConnection(socket, callback);
+					}
+				}, 5); // wait 5 milisecond for the connection...
+			}
+			function send(msg) {
+				// Wait until the state of the socket is not ready and send the message when it is...
+				waitForSocketConnection(ws, function () {
+					console.log("message sent!!!");
+					ws.send(msg);
+				});
+			}
 
-        if (uuid == undefined) {
-          customuid = parseInt(crypto.randomUUID(), 16);
-          document.cookie = "uuid=" + customuuid;
-        } else {
-          customuuid = uuid;
-          console.log("Uuid already exists : ", customuuid);
-        }
+			//////////////// end example request
+			if (localStorage.length < 3) {
+				packet = {
+					action: "CreateUser",
+					payload: {},
+				};
+				send(JSON.stringify(packet));
+			}
+			// listen for server messages
+			ws.onmessage = function (event) {
+				// show the message on the site
 
-        return customuuid;
-      }
-      var client_id = determineUserId();
-      var ws = new WebSocket(`ws://localhost:8000/ws/${client_id}`);
+				// do some logic on the messsage to determine what to do.
+				// try and catch are there becuase sometimes json isn't sent and it's just a normal string
+				try {
+					var data = JSON.parse(event.data);
+					console.log(data);
+					switch (data.action) {
+						case "USER_INFO":
+							console.log(data.payload)
+							localStorage.publicUUID = data.payload.publicUUID;
+							localStorage.privateUUID = data.payload.privateUUID;
+							localStorage.chosenId = data.payload.chosenId;
+							break;
 
-      ////////
-      // this is only here for now since the server echos every request for now
-      ex_request = {
-        action: "SendLobby",
-        payload: {
-          lobbyId: "asdf",
-        },
-      };
+						case "SendLobby":
+							lobby_id = data.payload.lobbyId;
+							console.log(lobby_id);
+							// put the lobby id information onto the page
+							var messagearea =
+								document.getElementById("lobbyid-display");
+							messagearea.textContent = lobby_id;
+							break;
 
-      ws.onopen = function (e) {
-        ws.send(JSON.stringify(ex_request));
-      };
+						case "UserJoinedLobby":
+							add_user_to_list(
+								data.payload.userId,
+								data.payload.publicUUID
+							);
+							break;
 
-      //////////////// end example request
+						case "MESSAGE":
+							alert(data.payload.message)
+							break;
+					}
+				} catch (e) {
+					console.log(e);
+				}
+			};
 
-      ws.onmessage = function (event) {
-        try {
-          // turn the meessage into a json
-          var data = JSON.parse(event.data);
-          console.log(data);
+			function ready_up() {
+				packet = {
+					action: "ReadyUp",
+					payload: {
+						publicUUID: localStorage.publicUUID,
+					},
+				};
+				send(JSON.stringify(packet));
+			}
 
-          // get the lobby id from the server
-          if (data.action == "SendLobby") {
-            lobby_id = data.payload.lobbyId;
-            console.log(lobby_id);
-            // put the lobby id information onto the page
-            var messagearea = document.getElementById("lobbyid-display");
-            messagearea.textContent = lobby_id;
-          }
-        } catch {
-          console.log(`Data sent wasn't JSON. It said ${event.data}`);
-        }
-      };
+			function add_user_to_list(userId, uuid) {
+				userarea = document.getElementById("users-list");
+				bulletpoint = document.createElement("h5");
+				bulletpoint.setAttribute("id", uuid);
 
-      function start_game() {
-        packet = {
-          action: "StartGame",
-          payload: {},
-        };
-        ws.send(JSON.stringify(packet));
-      }
-    </script>
+				text = document.createTextNode(userId);
+				bulletpoint.appendChild(text);
 
-    <style>
-        body{
-            background : #ffede1;
-        }
-        .lobby-id-container{
-            background:white;
-            margin-left:40%;
-            margin-right:40%;
-            margin-top:2rem;
-        }
-        
-    </style>
-    <script
-      src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
-      integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
-      integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/js/bootstrap.min.js"
-      integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd"
-    ></script>
-  </body>
+				userarea.appendChild(bulletpoint);
+			}
+		</script>
+
+		<style>
+			body {
+				background: #ffede1;
+			}
+			.lobby-id-container {
+				background: white;
+				margin-left: 40%;
+				margin-right: 40%;
+				margin-top: 2rem;
+			}
+			h5 {
+				display: inline-flex;
+				justify-content: center;
+				padding: 4rem 4rem 1rem 1rem;
+				font-size: 50px;
+			}
+			.start-game-button {
+				display: inline-flex;
+				justify-content: right;
+			}
+		</style>
+		<script
+			src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+			integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
+			crossorigin="anonymous"
+		></script>
+		<script
+			src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+			integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+			crossorigin="anonymous"
+		></script>
+	</body>
 </html>
