@@ -7,28 +7,26 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
-        // specify theme for tailwind use
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        linen: "#ffede1",
-                        ivory: "#f9fbf2",
-                        'light-cyan': "#d7f9ff",
-                        'baby-blue-eyes': "#afcbff",
-                        'oxford-blue': "#0e1c36",
-                    }
-                }
-            }
-        }
     </script>
-    <!--Main js file-->
+    <!--Main js file. Handles states-->
+    <script src="states.js"></script>
     <script src="static/main.js"></script>
+    <style>
+        .is-user {
+            background-color: blanchedalmond;
+        }
+
+        .submitted {
+            background-color: greenyellow !important;
+        }
+    </style>
 
 </head>
 
 <body class="bg-baby-blue-eyes">
+
     <div class="h-64 bg-oxford-blue">
+
         <h2 class="text-7xl text-center text-ivory pt-14 font-mono align-middle">
             SummerCodeJam
         </h2>
@@ -36,35 +34,186 @@
             A thing we are in fact doing.
         </h3>
     </div>
-    <div class="m-8 rounded-l-lg bg-light-cyan grid grid-cols-5">
-        <div class="h-full shadow-md bg-white px-1 col-span-1 rounded-l-lg">
-            <ul class="relative">
-                <template x-data="" x-for="user in $store.lobby.users">
-                    <li class="relative">
-                        <div x-text="user" class="flex items-center text-sm py-4 px-6 
-             h-12 overflow-hidden text-oxford-blue text-ellipsis 
-             whitespace-nowrap rounded hover:text-gray-900 
-             hover:bg-linen transition 
-             duration-300 ease-in-out mt-1" data-mdb-ripple="true" data-mdb-ripple-color="dark"></div>
-                    </li>
-                </template>
-            </ul>
-        </div>
-        <div class="mx-8 col-span-4">
+    <!--Lobby ID input-->
+    <template x-data="lobbyIdInp()" x-if="!$store.states.joinedLobby">
+        <form @submit.prevent="submit()" class="flex flex-col justify-center items-center">
+            <input x-model="lobbyId" required
+                class="my-12 appearance-none block w-2/6 bg-gray-200 text-gray-700 border rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white"
+                id="grid-first-name" type="text" placeholder="Enter Your Lobby ID">
+            <input x-model="username" required
+                class="appearance-none block w-2/6 bg-gray-200 text-gray-700 border rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white"
+                id="grid-first-name" type="text" placeholder="Enter a Name">
+            <button type="submit"
+                class="shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded"
+                type="button">
+                Join Lobby!
+            </button>
+        </form>
+    </template>
 
-            <template x-data="" x-for="sentence in $store.lobby.sentences" :key="sentence.id">
-                <div class="my-4 bg-ivory rounded-lg shadow-md p-6 border-oxford-blue border-1">
-                    <div class="flex flex-row 
-            justify-between border-b border-oxford-blue">
-                        <span class="text-oxford-blue" x-text="sentence.user"></span>
-                        <span class="text-gray-400" x-text="sentence.id"></span>
-                    </div>
-                    <div class="my-4 text-oxford-blue" x-text="sentence.text"></div>
-                </div>
-            </template>
+
+    <!--Waiting room components-->
+    <template x-data x-if="$store.states.joinedLobby && !$store.states.gameStarted">
+        <div class="m-8 rounded">
+            <!--Lobby id display-->
+            <div class="flex justify-center items-center">
+                <h1 x-text="$store.lobbyId"
+                    class=" my-1 text-center font-bold text-2xl w-1/6 bg-white text-oxford-blue"></h1>
+            </div>
+            <div class="h-full shadow-md bg-white px-1 col-span-1 rounded-l-lg">
+                <ul class="relative">
+                    <template x-data="" x-for="user in $store.lobby.users">
+                        <li class="">
+                            <!-- show users in lobby -->
+                            <div x-text="user.name" class="flex justify-center items-center py-4 px-6 
+                h-12 overflow-hidden text-2xl text-oxford-blue text-ellipsis 
+                whitespace-nowrap rounded hover:text-gray-900 
+                hover:bg-linen transition 
+                duration-300 ease-in-out mt-1" :class="{ 'is-user' : user.name === $store.username }"
+                                data-mdb-ripple="true" data-mdb-ripple-color="dark"></div>
+                        </li>
+                    </template>
+                </ul>
+            </div>
+            <h1 class="mt-8 text-center font-bold text-2xl text-oxford-blue">Players: <span
+                    x-text="$store.lobby.users.length"></span></h1>
+            <!-- Fake transition for testing-->
+            <div class="flex justify-center items-center ">
+                <button @click="$store.states.gameStarted = true"
+                    class="my-4 shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded"
+                    type="button">
+                    Continue for testing
+                </button>
+            </div>
         </div>
-    </div>
-    </div>
+    </template>
+    <!--Show prompt and sentence input-->
+    <template x-data x-if="$store.states.gameStarted && $store.states.awaitingSentences">
+        <div x-data="timerComponent($store.prompt.limit * 1000, promptLimitOver)">
+            <!--Loading bar at top of screen. Create timer with a time limit given by the prompt -->
+            <div x-data class="w-full bg-gray-200 h-3" x-init="init()">
+                <div class="bg-blue-600 h-3 transition-timer-width 
+                    ease-linear duration-1000" :style="'width: ' + getProportion()"></div>
+            </div>
+            <div class="m-8 rounded-l-lg bg-light-cyan grid grid-cols-5">
+                <!--Side bar-->
+                <div class="h-full shadow-md bg-white px-1 col-span-1 rounded-l-lg">
+                    <ul class="relative">
+                        <template x-data="" x-for="user in $store.lobby.users">
+                            <li class="relative">
+                                <div x-text="user.name" class="flex items-center text-sm py-4 px-6 
+                    h-12 overflow-hidden text-oxford-blue text-ellipsis 
+                    whitespace-nowrap rounded hover:text-gray-900 
+                    hover:bg-linen transition 
+                    duration-300 ease-in-out mt-1" :class="{ 
+                        'is-user' : user.name === $store.username,
+                        'submitted' : user.completed 
+                    }" data-mdb-ripple="true" data-mdb-ripple-color="dark"></div>
+                                <!--clases above indicate if the shown user is the current player and if the shown player has submitted a sentence -->
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+                <div class="mx-8 col-span-4">
+
+                    <form @submit.prevent="submit()" x-data="sentInp()" class="my-8 w-full">
+                        <!-- prompt display -->
+                        <h1 class="mt-8 text-center font-bold text-2xl text-oxford-blue" x-text="$store.prompt.text">
+                        </h1>
+                        <!--Sentence input form-->
+                        <div class="flex items-center border-b border-teal-500 py-2">
+                            <input x-model="sentence"
+                                class="appearance-none bg-transparent border-none w-full text-gray-700 mr-3 py-1 px-2 leading-tight focus:outline-none"
+                                type="text" placeholder="Type a sentence quickly!">
+                            <span x-data="timer($store.prompt.limit)" x-text="timeLimit"
+                                class="flex-shrink-0 border-transparent border-4 font-black text-oxford-blue text-lg mx-8">
+                            </span>
+                            <button type="submit"
+                                class="mt-2 shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded"
+                                type="button">
+                                Submit
+                            </button>
+                        </div>
+                        <!--Sentence Confirmation -->
+                        <h1 x-text="submittedSent" class="mt-8 text-center font-bold text-2xl text-oxford-blue"></h1>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </template>
+    <!--Voting template-->
+    <template x-data x-if="$store.states.awaitingVotes && !$store.states.awaitingSentences">
+        <div>
+            <!-- div for a loading bar note duration-1000 matches the 
+                timerComponents's interval function being called
+                every 1000 ms. These two should always match.
+            -->
+            <div class="w-full bg-gray-200 h-3" x-data="timerComponent($store.votingTime, votingTimeOver)" x-init="init()">
+                <div class="bg-green-400 h-3 transition-timer-width 
+                ease-linear duration-1000" :style="'width: ' + getProportion()"></div>
+            </div>
+
+            <!--Propmt display-->
+            <h1 class="mt-8 text-center font-bold text-2xl text-oxford-blue" x-data="" x-text="$store.prompt.text"></h1>
+
+            <div class="m-8 rounded-lg bg-light-cyan py-1 px-3">
+                <!-- Template for the list printing of the vote results,
+                            note that each object has a 'vis' property that gets
+                            updated on initiation, this is to trigger the transtion 
+                            on spawn once it gets updated by the init function-> nextick
+                    -->
+                <template x-data="" x-for="user in $store.lobby.users">
+                    <!--Only show the sentence if it isnt an empty string and isnt the player's sentence-->
+                    <template x-data x-if="user.sentence !== null && user.sentence.length > 0 && user.name != $store.username">
+                        <div class="my-4 bg-ivory rounded-lg shadow-sm p-4 border-oxford-blue" x-transition.duration.500ms
+                            x-data="{vis: false}" x-show="vis" x-init="$nextTick(() => {vis = true})">
+                            <div class="flex justify-center">
+                                    <div class="my-4 text-2xl text-oxford-blue" x-text="user.sentence"></div>
+                            </div>
+                            <!-- vote button. sendVote needs to change to use an actual id instead. -->
+                            <template x-data x-if="!$store.states.voted">
+                                <button @click="sendVote(user.name)" class="w-full h-12 px-6 text-green-100 transition-colors duration-150 bg-green-400 rounded-lg focus:shadow-outline hover:bg-green-500">Vote</button>
+                            </template>
+                        </div>
+                    </template>
+                </template>
+            </div>
+        </div>
+    </template>
+    <template x-data x-if="!$store.states.awaitingVotes">
+        <div>
+            <div class="w-full bg-gray-200 h-3" 
+            x-data="timerComponent(5000)"
+            x-init="init()">
+                <div 
+                class="bg-blue-600 h-3 transition-timer-width 
+                ease-linear duration-1000" 
+                :style="'width: ' + getProportion()"
+                
+                ></div>
+            </div>
+
+            <h1 class="mt-8 text-center font-bold text-2xl text-oxford-blue" x-data="" x-text="$store.prompt.text"></h1>
+
+            <div class="m-8 rounded-lg bg-light-cyan py-1 px-3">
+                    <!-- Template for the list printing of the vote results,
+                         note that each object has a 'vis' property that gets
+                         updated on initiation, this is to trigger the transtion 
+                         on spawn once it gets updated by the init function-> nextick
+                    -->
+                    <template x-data="sortedSentences()" x-for="user in sentences">
+                        <div class="my-4 bg-ivory rounded-lg shadow-sm p-4 border-oxford-blue" x-transition.duration.500ms 
+                        x-data="{vis: false}" x-show="vis" x-init="$nextTick(() => {vis = true})">
+                            <div class="flex flex-row justify-between border-b border-oxford-blue">
+                                <span class="text-oxford-blue" x-text="user.name"></span>
+                                <span class="text-gray-800" x-text="'Votes: ' + user.votes"></span>
+                            </div>
+                            <div class="my-4 text-oxford-blue" x-text="user.sentence"></div>
+                        </div>
+                    </template>
+            </div>
+        </div>
+    </template>
 </body>
 
 </html>
