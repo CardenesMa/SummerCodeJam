@@ -169,7 +169,7 @@ function sendVote(id) {
     Alpine.store('states').voted = true;
 }
 
-// return sorted sentence list after voting is done
+// return getter 'sentences' which stores list of sorted sentences after voting is done
 var sortedSentences = () => {
     return {
         get sentences() {
