@@ -24,48 +24,9 @@
         }
     </script>
     <!--Main js file-->
-    <!-- <script src="../static/main.js"></script> -->
-    <script>
-        // Contains code that is common across multiple components
-
-// initiate alpine data structures and callbacks after
-// alpine is initiated (not to be confused with alpine:initalized)
-document.addEventListener('alpine:init', () => {
-    Alpine.store('lobby', {
-        sentences: [
-            { id: 0, text: "Hello there!", user: "Jimmy" },
-            { id: 1, text: "Hello World!", user: "John" },
-            { id: 2, text: "The snail eats the donut", user: "Jane" },
-        ],
-        users: ["Jimmy", "John", "Jane"]
-    });
-
-    setTimeout(() => {
-        // testing if async update works well with alpine
-        Alpine.store('lobby').users.push("Tim");
-        Alpine.store('lobby').sentences.push({ id: 3, text: "Surprise sentence!", user: "Tim" });
-    }, 1000);
-})
-    </script>
+    <script src="../static/main.js"></script>
     <!--component js file-->
-    <!-- <script src="sentence-input.js"> -->
-    <script>
-        function timer(timeLimit) {
-    return {
-        timeLimit : timeLimit,
-        init() {
-            var timeInterval = setInterval(() => 
-            {
-                this.timeLimit--;
-                if (this.timeLimit < 0) {
-                    this.timeLimit = "Time is up!";
-                    clearInterval(timeInterval)
-                }
-            }, 1000)
-        }
-    }
-} 
-    </script>
+    <script src="sentence-input.js"></script>
 
 </head>
 
@@ -104,7 +65,7 @@ document.addEventListener('alpine:init', () => {
                     <div class="my-4 text-oxford-blue" x-text="sentence.text"></div>
                 </div>
             </template>
-            <form class="my-8 w-full" action="">
+            <form class="my-8 w-full">
                 <div class="flex items-center border-b border-teal-500 py-2">
                     <input class="appearance-none bg-transparent border-none w-full text-gray-700 mr-3 py-1 px-2 leading-tight focus:outline-none" type="text" placeholder="Type a sentence quickly!">
                     <span x-data="timer(20)" x-text="timeLimit" class="flex-shrink-0 border-transparent border-4 font-black text-oxford-blue text-lg mx-8">
@@ -118,10 +79,6 @@ document.addEventListener('alpine:init', () => {
         </div>
     </div>
     </div>
-
-    <script>
-        
-    </script>
 </body>
 
 </html>
