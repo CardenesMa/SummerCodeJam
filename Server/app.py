@@ -20,11 +20,6 @@ async def getmain():
         k = f.read()
     return HTMLResponse(k)
     
-@app.get("/lobby")
-async def getlobby():
-    with open("./User/Frontend/lobby.html", "r")as f:
-        k = f.read()
-    return HTMLResponse(k)
 
 class User:
    def __init__(self):
