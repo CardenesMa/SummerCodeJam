@@ -48,5 +48,6 @@ def alter_sentence(sentence, options={
     # concatenate the sentence
     return " ".join(out)
 
-print(alter_sentence("I am a sentence"))
-print(alter_sentence("I am a sentence with some long words such as gregariousness"))
+if __name__ == "__main__":
+    print(alter_sentence("I am a sentence"))
+    print(alter_sentence("I am a sentence with some long words such as gregariousness"))
