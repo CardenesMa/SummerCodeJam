@@ -171,17 +171,7 @@ class ServerManager:
 		else:
 			print(f"no lobby: {user.lobby_id} found")
 		
-				
-	def create_lobby(self,user, action, payload):
-		lobby_id = uuid.uuid4()
-		lobby = Lobby(lobby_id)
-		self.lobbies.append(lobby)
-		# do we also want to have the user join the lobby here?
-		self.send(user, "CREATED_LOBBY", {})
-
-		
-		return lobby_id
-	
+##### HELPER FUNCTIONS ########
 	def findLobby(self, lobbyId):
 		for lobby in self.lobbies:
 			if lobby.lobby_id == lobbyId:
@@ -193,7 +183,17 @@ class ServerManager:
 			if user.privateUUID == target_privateUUID: 
 				return True 
 		return False
+###################################
+				
+	def create_lobby(self,user, action, payload):
+		lobby_id = uuid.uuid4()
+		lobby = Lobby(lobby_id)
+		self.lobbies.append(lobby)
+		# do we also want to have the user join the lobby here?
+		self.send(user, "CREATED_LOBBY", {})
+
 		
+		return lobby_id
 
 	async def create_user(self, user, action: str, payload: dict):
 		lobby_id = payload['lobby_id'] # there is no lobby_id in payload for create_use
@@ -232,3 +232,7 @@ class ServerManager:
 
 	def authenticate(self):
 		pass
+
+
+# ToDo List:
+# * finish the action methods
