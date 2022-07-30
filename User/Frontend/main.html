@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-
+<!-- Heavily inspired by @PhantomLel's crack at this -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,7 +11,79 @@
     <!--Main js file. Handles states-->
     <script src="states.js"></script>
     <script src="static/main.js"></script>
+    <script src="static/js/client-comms.js"></script>
+    <script defer>
+        document.addEventListener('alpine:init', () => {
+            Alpine.store("state", {
+                manager: null,
+                init() {
+                    this.manager = new ClientManager();
+                }
+            });
+            Alpine.data("lobbyIdInput", () => (
+                {
+                lobbyId : '',
+                username : '',
+                directive: 'joinLobby', // join by default
+                init() {
+                    this.username = Alpine.store('gui_state').global.chosenName;
+                },
+                submit() {
+                    if (this.directive === "createLobby") {
+                        Alpine.store("state").manager.requestCreateLobby(this.username);
+                    } else if (this.directive === "joinLobby") {
+                        Alpine.store("state").manager.requestJoinLobby(this.lobbyId, this.username);
+                    } else {
+                        console.error("missed directive on lobbyIdInput Submit")
+                    }
+                }
+            }
+            ));
+
+            // adjusted @PhantomLel's code to a data provider pattern
+            Alpine.data("voteResults", () => {
+                return {
+                    get otherSentences() {
+                        const res = Alpine.store('gui_state').data.otherSentences.slice(0);
+                        res.sort((a,b) => (b.votes - a.votes));
+                        return res;
+                    },
+                    get winningSentence() {
+                        return Alpine.store('gui_state').data.winningSentence;
+                    }
+                }
+            });
+
+            Alpine.data("gameResults", () => {
+                return {
+                    get sortedGameScores() {
+                        const res = Alpine.store('gui_state').data.scores.slice(0);
+                        res.sort((a,b) => (b.score - a.score))
+                        return res;
+                    },
+                    get finalMessage() {
+                        winner = this.sortedGameScores[0];
+                        // intentional jank, as opposed to all of the unintentional jank seen seen elsewhere in my code
+                        return (winner.publicId === Alpine.store('gui_state').global.publicId) ? "You are a winner!" : "You are [NOT] a winner!"
+                    },
+                    get finalSubheading() {
+                        const roundNum = Alpine.store('gui_state').global.roundNum;
+                        return 'An intense ' + ((roundNum == 1) ? 'round!' : (String(roundNum) + ' rounds!!!'));
+                    }
+                }
+            })
+
+        })
+    </script>
+    <script>
+        // https://stackoverflow.com/q/3221161
+        window.onbeforeunload = function() {
+            return "Your connection with the game server will be lost!";
+        };
+    </script>
     <style>
+        /* from alpine.js website, suggestion for avoiding flickering */
+        [x-cloak] { display: none !important; }
         .is-user {
             background-color: blanchedalmond;
         }
@@ -19,6 +91,7 @@
         .submitted {
             background-color: greenyellow !important;
         }
+
     </style>
 
 </head>
@@ -35,29 +108,53 @@
         </h3>
     </div>
     <!--Lobby ID input-->
-    <template x-data="lobbyIdInp()" x-if="!$store.states.joinedLobby">
+    <div x-data="lobbyIdInput" x-cloak x-show="$store.gui_state.state === ClientGUIStatesEnum.homepage" x-init="init()">
         <form @submit.prevent="submit()" class="flex flex-col justify-center items-center">
-            <input x-model="lobbyId" required
+            <div class="flex justify-between my-4 items-center">
+                <div class="form-check form-check-inline mx-4">
+                  <input
+                  class="form-check-input form-check-input appearance-none rounded-full h-4 w-4 border border-gray-300 bg-white checked:bg-blue-600 checked:border-blue-600 focus:outline-none transition duration-200 mt-1 align-top bg-no-repeat bg-center bg-contain float-left mr-2 cursor-pointer"
+                  type="radio"
+                  value="createLobby"
+                  x-model="directive"
+                  x-bind:disabled="$store.gui_state.global.awaiting_request">
+                  <label class="form-check-label inline-block text-gray-800" for="inlineRadio10">Create Lobby</label>
+                </div>
+                <div class="form-check form-check-inline mx-4">
+                  <input class="form-check-input form-check-input appearance-none rounded-full h-4 w-4 border border-gray-300 bg-white checked:bg-blue-600 checked:border-blue-600 focus:outline-none transition duration-200 mt-1 align-top bg-no-repeat bg-center bg-contain float-left mr-2 cursor-pointer"
+                  type="radio"
+                  name="inlineRadioOptions"
+                  value="joinLobby"
+                  x-model="directive"
+                  x-bind:disabled="$store.gui_state.global.awaiting_request">
+                  <label class="form-check-label inline-block text-gray-800" for="inlineRadio20">Join Lobby</label>
+                </div>
+                <button type="submit"
+                    class="shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded disabled:bg-gray-200 inline-block"
+                    type="button"
+                    x-bind:disabled="$store.gui_state.global.awaiting_request">
+                    Go!
+                </button>
+            </div>
+            <input x-model="lobbyId" x-bind:required="directive === 'joinLobby'" x-show="directive === 'joinLobby'"
                 class="my-12 appearance-none block w-2/6 bg-gray-200 text-gray-700 border rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white"
-                id="grid-first-name" type="text" placeholder="Enter Your Lobby ID">
+                id="grid-first-name" type="text" placeholder="Enter Your Lobby ID"
+                x-bind:disabled="$store.gui_state.global.awaiting_request">
             <input x-model="username" required
                 class="appearance-none block w-2/6 bg-gray-200 text-gray-700 border rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white"
-                id="grid-first-name" type="text" placeholder="Enter a Name">
-            <button type="submit"
-                class="shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded"
-                type="button">
-                Join Lobby!
-            </button>
+                id="grid-first-name" type="text" placeholder="Enter a Name"
+                x-bind:disabled="$store.gui_state.global.awaiting_request">
+
         </form>
-    </template>
+    </div>
 
 
-    <!--Waiting room components-->
-    <template x-data x-if="$store.states.joinedLobby && !$store.states.gameStarted">
+        <!--Waiting room components-->
+    <div x-data x-cloak x-show="$store.gui_state.state === ClientGUIStatesEnum.joinedLobby">
         <div class="m-8 rounded">
             <!--Lobby id display-->
             <div class="flex justify-center items-center">
-                <h1 x-text="$store.lobbyId"
+                <h1 x-text="$store.lobby.id"
                     class=" my-1 text-center font-bold text-2xl w-1/6 bg-white text-oxford-blue"></h1>
             </div>
             <div class="h-full shadow-md bg-white px-1 col-span-1 rounded-l-lg">
@@ -65,11 +162,11 @@
                     <template x-data="" x-for="user in $store.lobby.users">
                         <li class="">
                             <!-- show users in lobby -->
-                            <div x-text="user.name" class="flex justify-center items-center py-4 px-6 
-                h-12 overflow-hidden text-2xl text-oxford-blue text-ellipsis 
-                whitespace-nowrap rounded hover:text-gray-900 
-                hover:bg-linen transition 
-                duration-300 ease-in-out mt-1" :class="{ 'is-user' : user.name === $store.username }"
+                            <div x-text="user.publicName" class="flex justify-center items-center py-4 px-6
+                h-12 overflow-hidden text-2xl text-oxford-blue text-ellipsis
+                whitespace-nowrap rounded hover:text-gray-900
+                hover:bg-linen transition
+                duration-300 ease-in-out mt-1"
                                 data-mdb-ripple="true" data-mdb-ripple-color="dark"></div>
                         </li>
                     </template>
@@ -77,22 +174,23 @@
             </div>
             <h1 class="mt-8 text-center font-bold text-2xl text-oxford-blue">Players: <span
                     x-text="$store.lobby.users.length"></span></h1>
-            <!-- Fake transition for testing-->
+
             <div class="flex justify-center items-center ">
-                <button @click="$store.states.gameStarted = true"
-                    class="my-4 shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded"
-                    type="button">
-                    Continue for testing
+                <button @click="$store.state.manager.requestGameStart()"
+                    class="my-4 shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded disabled:opacity-25"
+                    type="button" x-bind:disabled="$store.gui_state.global.awaiting_request"
+                    >
+                    Start Game
                 </button>
             </div>
         </div>
-    </template>
-    <!--Show prompt and sentence input-->
-    <template x-data x-if="$store.states.gameStarted && $store.states.awaitingSentences">
-        <div x-data="timerComponent($store.prompt.limit * 1000, promptLimitOver)">
+    </div>
+
+    <template x-data x-if="$store.gui_state.state === ClientGUIStatesEnum.submittingSenteces">
+        <div x-data="timerComponent($store.gui_state.data.limit * 1000)">
             <!--Loading bar at top of screen. Create timer with a time limit given by the prompt -->
             <div x-data class="w-full bg-gray-200 h-3" x-init="init()">
-                <div class="bg-blue-600 h-3 transition-timer-width 
+                <div class="bg-blue-600 h-3 transition-timer-width
                     ease-linear duration-1000" :style="'width: ' + getProportion()"></div>
             </div>
             <div class="m-8 rounded-l-lg bg-light-cyan grid grid-cols-5">
@@ -101,13 +199,12 @@
                     <ul class="relative">
                         <template x-data="" x-for="user in $store.lobby.users">
                             <li class="relative">
-                                <div x-text="user.name" class="flex items-center text-sm py-4 px-6 
-                    h-12 overflow-hidden text-oxford-blue text-ellipsis 
-                    whitespace-nowrap rounded hover:text-gray-900 
-                    hover:bg-linen transition 
-                    duration-300 ease-in-out mt-1" :class="{ 
-                        'is-user' : user.name === $store.username,
-                        'submitted' : user.completed 
+                                <div x-text="user.publicName" class="flex items-center text-sm py-4 px-6
+                    h-12 overflow-hidden text-oxford-blue text-ellipsis
+                    whitespace-nowrap rounded hover:text-gray-900
+                    hover:bg-linen transition
+                    duration-300 ease-in-out mt-1" :class="{
+                        'submitted' : user.completed
                     }" data-mdb-ripple="true" data-mdb-ripple-color="dark"></div>
                                 <!--clases above indicate if the shown user is the current player and if the shown player has submitted a sentence -->
                             </li>
@@ -116,21 +213,21 @@
                 </div>
                 <div class="mx-8 col-span-4">
 
-                    <form @submit.prevent="submit()" x-data="sentInp()" class="my-8 w-full">
+                    <form @submit.prevent="submit()" x-data="sentInp($store.state.manager)" class="my-8 w-full">
                         <!-- prompt display -->
-                        <h1 class="mt-8 text-center font-bold text-2xl text-oxford-blue" x-text="$store.prompt.text">
+                        <h1 class="mt-8 text-center font-bold text-2xl text-oxford-blue" x-text="$store.gui_state.global.roundPrompt">
                         </h1>
                         <!--Sentence input form-->
                         <div class="flex items-center border-b border-teal-500 py-2">
                             <input x-model="sentence"
                                 class="appearance-none bg-transparent border-none w-full text-gray-700 mr-3 py-1 px-2 leading-tight focus:outline-none"
                                 type="text" placeholder="Type a sentence quickly!">
-                            <span x-data="timer($store.prompt.limit)" x-text="timeLimit"
+                            <span x-data="timer($store.gui_state.data.limit)" x-text="timeLimit"
                                 class="flex-shrink-0 border-transparent border-4 font-black text-oxford-blue text-lg mx-8">
                             </span>
                             <button type="submit"
-                                class="mt-2 shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded"
-                                type="button">
+                                class="mt-2 shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded disabled:opacity-25"
+                                type="button" x-bind:disabled="$store.gui_state.data.sentSentence">
                                 Submit
                             </button>
                         </div>
@@ -141,38 +238,42 @@
             </div>
         </div>
     </template>
-    <!--Voting template-->
-    <template x-data x-if="$store.states.awaitingVotes && !$store.states.awaitingSentences">
+
+    <template x-data x-if="$store.gui_state.state === ClientGUIStatesEnum.voting">
         <div>
-            <!-- div for a loading bar note duration-1000 matches the 
+            <!-- div for a loading bar note duration-1000 matches the
                 timerComponents's interval function being called
                 every 1000 ms. These two should always match.
             -->
-            <div class="w-full bg-gray-200 h-3" x-data="timerComponent($store.votingTime, votingTimeOver)" x-init="init()">
-                <div class="bg-green-400 h-3 transition-timer-width 
+            <div class="w-full bg-gray-200 h-3" x-data="timerComponent($store.gui_state.data.limit * 1000)" x-init="init()">
+                <div class="bg-green-400 h-3 transition-timer-width
                 ease-linear duration-1000" :style="'width: ' + getProportion()"></div>
             </div>
 
             <!--Propmt display-->
-            <h1 class="mt-8 text-center font-bold text-2xl text-oxford-blue" x-data="" x-text="$store.prompt.text"></h1>
+            <h1 class="mt-8 text-center font-bold text-2xl text-oxford-blue" x-data="" x-text="$store.gui_state.global.roundPrompt"></h1>
 
             <div class="m-8 rounded-lg bg-light-cyan py-1 px-3">
                 <!-- Template for the list printing of the vote results,
                             note that each object has a 'vis' property that gets
-                            updated on initiation, this is to trigger the transtion 
+                            updated on initiation, this is to trigger the transtion
                             on spawn once it gets updated by the init function-> nextick
                     -->
-                <template x-data="" x-for="user in $store.lobby.users">
+                <template x-data="" x-for="sentence in $store.gui_state.data.sentences" :key=sentence.userPublicId>
                     <!--Only show the sentence if it isnt an empty string and isnt the player's sentence-->
-                    <template x-data x-if="user.sentence !== null && user.sentence.length > 0 && user.name != $store.username">
-                        <div class="my-4 bg-ivory rounded-lg shadow-sm p-4 border-oxford-blue" x-transition.duration.500ms
-                            x-data="{vis: false}" x-show="vis" x-init="$nextTick(() => {vis = true})">
+                    <template x-data x-if="sentence.text !== null && sentence.text.length > 0 && sentence.userPublicId != $store.gui_state.global.publicId">
+                        <div class="my-4 rounded-lg shadow-sm p-4 border-oxford-blue" x-transition.duration.500ms
+                            x-data="{vis: false}" x-show="vis" x-init="$nextTick(() => {vis = true})"
+                            :class="($store.gui_state.data.voted && $store.gui_state.data.votedId == sentence.userPublicId) ? 'bg-linen' : 'bg-ivory'">
                             <div class="flex justify-center">
-                                    <div class="my-4 text-2xl text-oxford-blue" x-text="user.sentence"></div>
+                                    <div class="my-4 text-2xl text-oxford-blue" x-text="sentence.text"></div>
                             </div>
                             <!-- vote button. sendVote needs to change to use an actual id instead. -->
-                            <template x-data x-if="!$store.states.voted">
-                                <button @click="sendVote(user.name)" class="w-full h-12 px-6 text-green-100 transition-colors duration-150 bg-green-400 rounded-lg focus:shadow-outline hover:bg-green-500">Vote</button>
+                            <template x-data x-if="!$store.gui_state.data.voted">
+                                <button @click="sendVote($store.state.manager, sentence.userPublicId)"
+                                    class="w-full h-12 px-6 text-green-100 transition-colors duration-150 bg-green-400
+                                           rounded-lg focus:shadow-outline hover:bg-green-500 disabled:bg-gray-200 disabled:opacity-25"
+                                           x-bind:disabled="$store.gui_state.data.voted">Vote</button>
                             </template>
                         </div>
                     </template>
@@ -180,40 +281,71 @@
             </div>
         </div>
     </template>
-    <template x-data x-if="!$store.states.awaitingVotes">
+
+    <template x-data x-if="$store.gui_state.state === ClientGUIStatesEnum.voteResults">
         <div>
-            <div class="w-full bg-gray-200 h-3" 
+            <div class="w-full bg-gray-200 h-3"
             x-data="timerComponent(5000)"
             x-init="init()">
-                <div 
-                class="bg-blue-600 h-3 transition-timer-width 
-                ease-linear duration-1000" 
+                <div
+                class="bg-blue-600 h-3 transition-timer-width
+                ease-linear duration-1000"
                 :style="'width: ' + getProportion()"
-                
+
                 ></div>
             </div>
 
-            <h1 class="mt-8 text-center font-bold text-2xl text-oxford-blue" x-data="" x-text="$store.prompt.text"></h1>
+            <h1 class="mt-8 text-center font-bold text-2xl text-oxford-blue" x-data="" x-text="$store.gui_state.global.roundPrompt"></h1>
 
             <div class="m-8 rounded-lg bg-light-cyan py-1 px-3">
                     <!-- Template for the list printing of the vote results,
                          note that each object has a 'vis' property that gets
-                         updated on initiation, this is to trigger the transtion 
+                         updated on initiation, this is to trigger the transtion
                          on spawn once it gets updated by the init function-> nextick
                     -->
-                    <template x-data="sortedSentences()" x-for="user in sentences">
-                        <div class="my-4 bg-ivory rounded-lg shadow-sm p-4 border-oxford-blue" x-transition.duration.500ms 
+                    <div class="my-4 bg-linen rounded-lg shadow-sm p-4 border-oxford-blue" x-transition.duration.500ms
                         x-data="{vis: false}" x-show="vis" x-init="$nextTick(() => {vis = true})">
                             <div class="flex flex-row justify-between border-b border-oxford-blue">
-                                <span class="text-oxford-blue" x-text="user.name"></span>
-                                <span class="text-gray-800" x-text="'Votes: ' + user.votes"></span>
+                                <span class="text-oxford-blue" x-text="$store.gui_state.data.winningSentence.userPublicName"></span>
+                                <span class="text-gray-800" x-text="'Votes: ' + $store.gui_state.data.winningSentence.votes"></span>
                             </div>
-                            <div class="my-4 text-oxford-blue" x-text="user.sentence"></div>
+                            <div class="my-4 text-oxford-blue" x-text="$store.gui_state.data.winningSentence.text"></div>
+                    </div>
+                    <template x-data="voteResults" x-for="sentence in otherSentences">
+                        <div class="my-4 bg-ivory rounded-lg shadow-sm p-4 border-oxford-blue" x-transition.duration.500ms
+                        x-data="{vis: false}" x-show="vis" x-init="$nextTick(() => {vis = true})">
+                            <div class="flex flex-row justify-between border-b border-oxford-blue">
+                                <span class="text-oxford-blue" x-text="$store.gui_state.formatName(sentence.userPublicName, sentence.userPublicId)"></span>
+                                <span class="text-gray-800" x-text="'Votes: ' + sentence.votes"></span>
+                            </div>
+                            <div class="my-4 text-oxford-blue" x-text="sentence.text"></div>
                         </div>
                     </template>
             </div>
         </div>
     </template>
+
+    <template x-data="gameResults" x-if="$store.gui_state.state === ClientGUIStatesEnum.gameResult">
+        <div>
+            <h1 class="mt-8 text-center font-bold text-5xl text-oxford-blue" x-text="finalMessage"></h1>
+
+            <h3 class="mt-2 text-center text-md text-oxford-blue" x-text="finalSubheading"></h3>
+
+            <div class="mx-4">
+            <template x-data="gameResults" x-for="score in sortedGameScores" :key="score.publicId">
+                <div class="flex my-4 bg-ivory rounded-lg shadow-sm p-4 border-oxford-blue justify-between" x-transition.duration.500ms
+                        x-data="{vis: false}" x-show="vis" x-init="$nextTick(() => {vis = true})">
+                        <div class="my-4 text-2xl text-oxford-blue" x-text="score.publicName"></div>
+                        <div class="my-4 text-oxford-blue" x-text="score.score"></div>
+                </div>
+            </template>
+            </div>
+
+        </div>
+
+    </template>
+
+
 </body>
 
 </html>
