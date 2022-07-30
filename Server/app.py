@@ -5,7 +5,6 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 
 app = FastAPI()
-
 # # keeping the html data seperate to de-clog this file
 # with open("./User/Frontend/home.html", "r") as f:
 #     html  = f.read()
@@ -81,36 +80,22 @@ app = FastAPI()
     
 
 @app.websocket("/ws/{client_id}")
-async def websocket_endpoint(websocket:WebSocket, client_id:int):
-    manager = Communications.ServerManager()
+async def websocket_endpoint(websocket:WebSocket, client_id):
+    manager = Communications.ServerManager(websocket, client_id)
+    await manager.connect()
     
-    server_working = True
-    
-    while server_working:
-        # continuously listen to everything thats going on
-        manager.listen()
+    try:
+        server_working = True
+        while server_working:
+            # continuously listen to everything thats going on
+            await manager.listen()
+    except WebSocketDisconnect:
+        manager.disconnect()
+        print(client_id, " left the chat")
         
-        
+    else:
+        print("An Error Occured :(")
 
-    # fill in user information based on websocket
-    # user = User()
-    # user.socket = websocket
-    # user.userid = client_id
-    
-    # await manager.connect(user)
-    # await send_word()
-    
-    # try:
-    #     while True:
-    #         user.sentence = await user.socket.receive_text()
-    #         print('This is', user.userid, '---', user.sentence)
-    #         if await manager.everyoneSentMessage():
-    #             await manager.broadcastAll()
-    #             manager.clearAllSentences()
-                
-    # except WebSocketDisconnect:
-    #     manager.disconnect(user)
-    #     await manager.broadcast(f"Client #{client_id} left the chat")
 
 
 import uvicorn
