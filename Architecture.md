@@ -145,7 +145,7 @@ type gameResult = {
 ```ts
 {
     "action": "USER_CONNECT",
-    "payload": lobbyUser
+    "payload": {"user": lobbyUser}
 }
 ```
 
