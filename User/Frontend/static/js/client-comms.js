@@ -400,12 +400,22 @@ class ClientManager {
     // as well as the lobby id.
     handleLobbyJoin(action, payload) {
         // parse the users payload
-        this.state.global.lobby.users = payload[PayloadIds.lobbyProps.users].map(
-            elem => (
-                {
+        this.state.global.lobby.users = payload[PayloadIds.lobbyProps.users].reduce(
+            (acc, elem) => {
+                const userId = elem[PayloadIds.userProps.publicId];
+                acc[userId] = {
                     publicId: elem[PayloadIds.userProps.publicId],
                     publicName: elem[PayloadIds.userProps.publicName]
-                }));
+                }
+                return acc;
+            }, {});
+
+        // make sure we are added to the list
+        this.state.global.lobby.users[this.state.global.publicId] = {
+            publicId: this.state.global.publicId,
+            publicName: this.state.global.publicName,
+        }
+
         this.state.global.lobby.id = payload[PayloadIds.lobbyProps.id];
         this.transtionToState(ClientStateEnum.Lobby);
     }
@@ -445,7 +455,9 @@ class ClientManager {
         console.log("userObj", userObj)
         console.log("userId", userId);
         // delete the user entry, ideally this would be handled in an immutable way
-        this.state.global.lobby.users = this.state.global.lobby.users.filter((el) => (el.publicId !== userId));
+
+        // this.state.global.lobby.users = this.state.global.lobby.users.filter((el) => (el.publicId !== userId));
+        delete this.state.global.lobby.users[userId]
         this.LobbyGuiStateProxy.users = this.LobbyGuiStateProxy.users.filter((el) => (el.publicId != userId));
     }
 
@@ -474,10 +486,11 @@ class ClientManager {
     handleSentences(action, payload) {
         this.state.data.judgingEntries = {
             sentences: payload[PayloadIds.sentenceObjects].reduce((acc, el) => {
+                const publicId = el[PayloadIds.sentenceProps.publicId];
                 return acc.concat({
                     text: el[PayloadIds.sentenceProps.text],
-                    userPublicId: el[PayloadIds.sentenceProps.publicId],
-                    userPublicName: el[PayloadIds.sentenceProps.publicName],
+                    userPublicId: publicId,
+                    userPublicName: this.state.global.lobby.users[publicId].publicName,
                 });
             }, []),
             timeLimit: payload[PayloadIds.timeLimit] || 10, // 10 seconds by default
@@ -489,21 +502,23 @@ class ClientManager {
     //
     handleRoundResult(action, payload) {
         const winningSentence = payload[PayloadIds.winningSentence];
+        const winningPublicId = winningSentence[PayloadIds.resultSentenceProps.publicId];
         this.state.data.roundResult = {
             // extract the props in winningSentence
             winningSentence: {
                 text: winningSentence[PayloadIds.resultSentenceProps.text],
-                userPublicId: winningSentence[PayloadIds.resultSentenceProps.publicId],
-                userPublicName: winningSentence[PayloadIds.resultSentenceProps.publicName],
+                userPublicId: winningPublicId,
+                userPublicName: this.state.global.lobby.users[winningPublicId].publicName,
                 votes: winningSentence[PayloadIds.resultSentenceProps.votes],
             },
 
             // extract props in each non-winning sentence
             otherSentences: payload[PayloadIds.otherSentences].reduce((acc, el) => {
+                const userId = el[PayloadIds.resultSentenceProps.publicId];
                 return acc.concat({
                     text: el[PayloadIds.resultSentenceProps.text],
-                    userPublicId: el[PayloadIds.resultSentenceProps.publicId],
-                    userPublicName: el[PayloadIds.resultSentenceProps.publicName],
+                    userPublicId: userId,
+                    userPublicName: this.state.global.lobby.users[userId].publicName,
                     votes: el[PayloadIds.resultSentenceProps.votes],
                 });
             }, []),
@@ -517,7 +532,8 @@ class ClientManager {
         this.state.data.gameResult = {
             scores: payload[PayloadIds.scoreObjects].map(el => ({
                 score: el[PayloadIds.scoreProps.score],
-                publicName: el[PayloadIds.scoreProps.publicName],
+                publicName:
+                this.state.global.lobby.users[el[PayloadIds.scoreProps.publicId]].publicName,
                 publicId: el[PayloadIds.scoreProps.publicId],
             }))
         }
@@ -535,7 +551,7 @@ class ClientManager {
             case ClientStateEnum.Lobby: {
                 // Lobby state with possibly joined players
                 this.GuiStateProxy.state = ClientGUIStatesEnum.joinedLobby;
-                this.LobbyGuiStateProxy.users = this.state.global.lobby.users;
+                this.LobbyGuiStateProxy.users = Object.values(this.state.global.lobby.users);
                 this.LobbyGuiStateProxy.id = this.state.global.lobby.id;
                 break;
             }

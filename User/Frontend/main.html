@@ -306,7 +306,7 @@
                     <div class="my-4 bg-linen rounded-lg shadow-sm p-4 border-oxford-blue" x-transition.duration.500ms
                         x-data="{vis: false}" x-show="vis" x-init="$nextTick(() => {vis = true})">
                             <div class="flex flex-row justify-between border-b border-oxford-blue">
-                                <span class="text-oxford-blue" x-text="$store.gui_state.data.winningSentence.userPublicName"></span>
+                                <span class="text-oxford-blue font-bold text-lg" x-text="$store.gui_state.data.winningSentence.userPublicName"></span>
                                 <span class="text-gray-800" x-text="'Votes: ' + $store.gui_state.data.winningSentence.votes"></span>
                             </div>
                             <div class="my-4 text-oxford-blue" x-text="$store.gui_state.data.winningSentence.text"></div>
@@ -315,7 +315,7 @@
                         <div class="my-4 bg-ivory rounded-lg shadow-sm p-4 border-oxford-blue" x-transition.duration.500ms
                         x-data="{vis: false}" x-show="vis" x-init="$nextTick(() => {vis = true})">
                             <div class="flex flex-row justify-between border-b border-oxford-blue">
-                                <span class="text-oxford-blue" x-text="$store.gui_state.formatName(sentence.userPublicName, sentence.userPublicId)"></span>
+                                <span class="text-oxford-blue font-bold text-lg" x-text="$store.gui_state.formatName(sentence.userPublicName, sentence.userPublicId)"></span>
                                 <span class="text-gray-800" x-text="'Votes: ' + sentence.votes"></span>
                             </div>
                             <div class="my-4 text-oxford-blue" x-text="sentence.text"></div>
