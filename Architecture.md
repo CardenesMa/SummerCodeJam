@@ -175,7 +175,7 @@ type gameResult = {
     "action": "SEND_SENT",
     "payload": {
         "prompt": string,
-        "limit": Optional<sentence> // time in seconds to vote
+        "sentences": Array<sentence> // time in seconds to vote
     }
 }
 ```
