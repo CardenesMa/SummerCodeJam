@@ -1,9 +1,8 @@
 
 import uuid
-from xmlrpc.client import Server
 from fastapi import WebSocket, WebSocketDisconnect
 import json
-# from Lobby import Lobby
+from Lobby import Lobby
 
 
 #   listening for commands
@@ -11,13 +10,15 @@ import json
 # |  execute commands (RoundResult, UserInfo, UserJoined Lobby )
 
 class User:
-	def __init__(self, chosenId: str = "DefultName"):
+	def __init__(self, publicName: str = "DefultName"):
 		# self.publicUUID=uuid.uuid4() # not sure how this is going to work with it all but we have it 
 		self.privateUUID = uuid.uuid4()
-		self.chosenId = chosenId
+		self.publicName = publicName
+		self.score = 0
 		self.socket_id: int
 		self.sentence = None
-		self.lobby_id: uuid
+		self.lobby_id: uuid.UUID
+		self.waiting_lobby = Lobby()
 		
 
 class ServerComms:
@@ -29,6 +30,7 @@ class ServerComms:
 		self.websocket =websocket
 		# this holds a pair "action" : [callback(),...]
 		self.action_callbacks = {}
+		self.lobbies = []
 
 	
 	
@@ -44,15 +46,14 @@ class ServerComms:
 			print("Incoming Packet: ", data)
 			# jsonify packet
 			json_data = json.loads(data)
-			self.handle_client_action(json_data["publicUUID"], json_data["action"], json_data)
+			await self.handle_client_action(json_data["payload"]["privateUUID"], json_data["action"], json_data)
 		# handle appropriate exceptions
 		except SyntaxError as e:
 			print("Syntax Error : Invalid JSON recieved")
-		except Exception as e:
-			print("Something went wrong reading data. Here's whats wrong:" , e)
+		
    
 	
-	def register_callback(self, action:str, action_consumer:function):
+	def register_callback(self, action:str, action_consumer):
 		"""Makes the "action" : [callback(), ...] pair for self.action_callback
 
 		Args:
@@ -64,7 +65,7 @@ class ServerComms:
 		else:
 			self.action_callbacks[action] = [action_consumer]
 			
-	def handle_client_action(self,  user:uuid.UUID | str, action:str, action_object:dict):
+	async def handle_client_action(self,  user: str, action:str, action_object:dict):
 		"""When called, it executes the function
 
 		Args:
@@ -79,8 +80,8 @@ class ServerComms:
 		if action in self.action_callbacks:
 			for callback in self.action_callbacks[action]:
 				# execute that method and save it to the returns
-				r =  callback(user, action, {{}, action_object["payload"]})
-				returns += r
+				r =  await callback(user, action, action_object["payload"])
+				returns.append(r)
 			return returns
 				
 		else:
@@ -102,14 +103,17 @@ class ServerManager:
 		"""
 		self.server_comms = ServerComms(websocket)
 		self.lobbies = []
+		# private UUID : User
+		self.users = {}
 		self.client_id = client_id
+		self.waiting_lobby = Lobby()
+
 		
 		
 		# a list of all the expected actions sent to the server
 		self.user_actions_enum = [
 		"JoinLobby",
 		"SendSentence",
-		"RequestUserInfo",
 		"StartGame",
 		"VoteForPublicUUID",
 		"CreateLobby",
@@ -120,7 +124,6 @@ class ServerManager:
 		self.handlers_enum = [
 			self.join_lobby,
 			self.send_sentence,
-			self.request_user_info,
 			self.start_game,
 			self.vote_for_publicUUID,
 			self.create_lobby,
@@ -142,9 +145,7 @@ class ServerManager:
 		"""Assigns the action to the client. See ServerComms.register_callback()
 		"""
 		# Putting al the events and methods together to work
-		handler_action_pair = [(i,j) 
-							   for i in self.user_actions_enum
-							   for j in self.handlers_enum]
+		handler_action_pair = [(i,self.handlers_enum[j]) for j,i in enumerate(self.user_actions_enum)]
 		for pair in handler_action_pair:
 			self.server_comms.register_callback(
 				pair[0],
@@ -153,13 +154,14 @@ class ServerManager:
 			)
 	
 	
-	async def send(self, user:User, action: str, payload: dict):
+	async def send(self, user:str, action: str, payload: dict):
 		# crate packet
 		action_msg = json.dumps({'action':action, 'payload': payload})
 		# send the packet 
-		user.socket.send_text(action_msg)
-		print(f"sent message {action}:{payload} to {user.user_id}")
+		await self.server_comms.websocket.send_text(action_msg)
+		print(f"sent message action : {action}, payload : {payload} to {self.users[user].publicName}")
 		
+  
 	async def send_server_action_to_lobby(self, user:User, action:str, payload:dict):
 		# broadcast to lobby
 		lobby_id = user.lobby_id
@@ -176,7 +178,7 @@ class ServerManager:
 		for lobby in self.lobbies:
 			if lobby.lobby_id == lobbyId:
 				return lobby
-		return 'No Lobby Exists'
+		print("No Lobby Exists")
 	
 	def findUserInLobby(self,lobby,target_privateUUID):
 		for user in lobby.users:
@@ -185,52 +187,61 @@ class ServerManager:
 		return False
 ###################################
 				
-	def create_lobby(self,user, action, payload):
-		lobby_id = uuid.uuid4()
-		lobby = Lobby(lobby_id)
+	async def create_lobby(self,user, action, payload):
+		lobby = Lobby()
 		self.lobbies.append(lobby)
 		# do we also want to have the user join the lobby here?
-		self.send(user, "CREATED_LOBBY", {})
+		await self.send(user, "CREATED_LOBBY", {"lobby_id" : lobby.lobby_id})
 
-		
-		return lobby_id
-
-	async def create_user(self, user, action: str, payload: dict):
-		lobby_id = payload['lobby_id'] # there is no lobby_id in payload for create_use
+				
+	async def create_user(self, user: User, action: str, payload: dict):
 		# payload {chosenID: "Geo", "privateUUID":1234-1234567-1234}
-		# user.user_id = 
-		currentLobby = self.findLobby(lobby_id)        
-
-		if not self.findUserInLobby(currentLobby, payload['privateUUID']):
-			user = User(payload['chosenId'])
-			currentLobby.users.append(user)
-
-
-	def join_lobby(self, user, action, payload):
-		lobby_id = payload["lobby_id"]
-		lobby = self.findLobby(lobby_id) # what?
-		if lobby:
-			lobby.user_join(user)
-		else:
-			print(f"no lobby id {lobby_id}")
-			# Send message to client that no lobby exsists
-			self.server_send_action_to_user(user, "NO_LOBBY", {"msg":f"no lobby found with id {lobby_id}", "avalible_lobbies": self.lobbies})
 		
-		
+		# current_user = User(publicName=payload['chosenID'])
+		current_user = User()
+		# current_user.privateUUID = payload['privateUUID']
+		self.waiting_lobby.users[current_user.privateUUID] = current_user
+  
+		self.users[str(current_user.privateUUID)] = current_user
 
-	def start_game(self):
+		payload = {
+			'privateUUID': str(current_user.privateUUID),
+			'publicName': current_user.publicName, 
+		}
+
+		await self.send(str(current_user.privateUUID), "USER_INFO", payload)
+		print('User Created!')
+
+
+	async def join_lobby(self, user, action, payload):
+		# find the correc lobby id to join
+		current_lobby = self.findLobby(payload['lobby_id'])
+		# add the user to the correct_lobby
+		current_lobby.users[user] = self.waiting_lobby.users[user]
+		# delete from waiting lobby
+		del self.waiting_lobby.users[user]
+
+
+	async def start_game(self, user, action:str, payload:dict):
 		pass
 
-	def send_sentence(self):
+	async def send_sentence(self, user, action:str, payload:dict):
 		pass
 
-	def request_user_info(self):
-		pass
+	async def request_user_info(self, user, action:str, payload:dict):
+		await self.send(user, "USER_INFO", {"publicName":"DefaultName", "privateUUID" : self.users[user].publicUUID})
 
-	def vote_for_publicUUID(self):
-		pass
+	async def vote_for_publicUUID(self, user, action:str, payload:dict):
+		# there has to be a better way than n^2 time to do this. I'd reccomend using a hashmap or sending the user lobby
+		# in the packet, but for now this is what we have.
+		for lob in self.lobbies:
+			for usr in lob.users:
+				if usr.privateUUID == user:
+					usr.score += 1
+					break 
+					
 
-	def authenticate(self):
+	async def authenticate(self, user, action:str, payload:dict):
 		pass
 
 

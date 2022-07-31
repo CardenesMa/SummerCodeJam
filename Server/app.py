@@ -89,6 +89,7 @@ async def websocket_endpoint(websocket:WebSocket, client_id):
         while server_working:
             # continuously listen to everything thats going on
             await manager.listen()
+            
     except WebSocketDisconnect:
         manager.disconnect()
         print(client_id, " left the chat")
