@@ -7,12 +7,20 @@ from fastapi.responses import HTMLResponse
 app = FastAPI()
 
 # keeping the html data seperate to de-clog this file
-with open("./index.html", "r") as f:
+
+with open("./User/Frontend/home.html", "r") as f:
     html  = f.read()
 
 @app.get("/")
 async def get():
     return HTMLResponse(html)
+
+@app.get("/main")
+async def getmain():
+    with open("./User/Frontend/main.html", "r") as f:
+        k = f.read()
+    return HTMLResponse(k)
+    
 
 class User:
    def __init__(self):
@@ -91,6 +99,6 @@ async def websocket_endpoint(websocket:WebSocket, client_id:int):
         await manager.broadcast(f"Client #{client_id} left the chat")
 
 
+import uvicorn
 if __name__ == "__main__":
-    import os
-    os.system("uvicorn app:app --reload")
+    uvicorn.run("app:app", reload=True)
