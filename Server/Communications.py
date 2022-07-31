@@ -17,7 +17,7 @@ class User:
 		self.privateUUID = str(uuid.uuid4())
 		self.publicName = publicName
 		self.score = 0
-		self.socket_id: int
+		self.socket: WebSocket
 		self.sentence = None
 		self.lobby_id: str
 		self.waiting_lobby = Lobby()
@@ -30,7 +30,7 @@ class ServerComms:
 	
 	
 	def __init__(self, websocket:WebSocket):
-		self.websocket =websocket
+		self.websocket = websocket
 		# this holds a pair "action" : [callback(),...]
 		self.action_callbacks = {}
 		self.lobbies = []
@@ -41,10 +41,9 @@ class ServerComms:
 		await self.websocket.accept()
 		
 	
-	async def recieve(self):
+	async def receive(self, data):
 		"""Used to listen to the websocket and execute commands as needed.
 		"""
-		data = await self.websocket.receive_text()
 		try:
 			print("Incoming Packet: ", data)
 			# jsonify packet
@@ -53,7 +52,8 @@ class ServerComms:
 		# handle appropriate exceptions
 		except SyntaxError as e:
 			print("Syntax Error : Invalid JSON recieved")
-		
+		# except Exception as e:
+		# 	print(f"{e}")
    
 	
 	def register_callback(self, action:str, action_consumer):
@@ -80,6 +80,7 @@ class ServerComms:
 			_type_: for debugging purposes, it returns the list of the outcomes of all the methods it calls
 		"""
 		returns = []
+		action_object["payload"]["server_comm"] = self
 		if action in self.action_callbacks:
 			for callback in self.action_callbacks[action]:
 				# execute that method and save it to the returns
@@ -100,13 +101,12 @@ class ServerManager:
 	def __init__(self):
 		"""This should be created under the @app.websocket("/ws/client_id") decorator
 		"""
-		self.server_comms = None
 		self.lobbies = []
 		# private UUID : User
 		self.users = {}
-		self.client_id = None
 		self.waiting_lobby = Lobby()
-
+		self.server_comms = []
+		self.user_to_scs = {}
 		self.prompt_words = ["Racoon", "Clam", "Weezer", "Lancelot", "Abdullah", "P!ATD", "Taiwan", "Fidget Spinner", "Lamp"]
 		
 		# a list of all the expected actions sent to the server
@@ -128,30 +128,30 @@ class ServerManager:
 			self.create_user       
 		]
 		
-		
-	async def connect(self, websocket, client_id):
-		self.server_comms = ServerComms(websocket)
-		self.client_id = client_id
-		await self.server_comms.connect()
-		self.attach_client_handlers()
+	
+	async def connect(self, server_comms: ServerComms, client_id):
+		self.server_comms.append(server_comms)
+		await server_comms.connect()
+		self.attach_client_handlers(self.server_comms[-1])
   
-	async def listen(self):
-		await self.server_comms.recieve()
+	async def listen(self, data, server_comms):
+		
+		await server_comms.receive(data)
   
 	async def disconnect(self, user):
 		await self.send_server_action_to_lobby(user, "USER_DISCONNECT", {{"private_id" : user, "public_name" : self.users[user].publicName}})
-		lobby = self.users[user].lobby_id
+		lobby = self.websockets[user].lobby_id
 		del self.lobbies[self.lobbies.index(lobby)].users[user]
   # eventually this should remove the user from a lobby to keep people up to date
 
 
-	def attach_client_handlers(self):
+	def attach_client_handlers(self, server_comms: ServerComms):
 		"""Assigns the action to the client. See ServerComms.register_callback()
 		"""
 		# Putting al the events and methods together to work
 		handler_action_pair = [(i,self.handlers_enum[j]) for j,i in enumerate(self.user_actions_enum)]
 		for pair in handler_action_pair:
-			self.server_comms.register_callback(
+			server_comms.register_callback(
 				pair[0],
 				pair[1]
 			)
@@ -161,7 +161,7 @@ class ServerManager:
 		# crate packet
 		action_msg = json.dumps({'action':action, 'payload': payload})
 		# send the packet 
-		await self.users[user].websocket.send_text(action_msg)
+		await self.user_to_scs[user].websocket.send_text(action_msg)
 		print(f"sent message action : {action}, payload : {payload} to {str(self.users[user].publicName)}")
 		
   
@@ -198,11 +198,9 @@ class ServerManager:
 		await self.send(user, "ACK_JOIN", {"lobby_id" : lobby.lobby_id, 'users':[{"public_name" : i.publicName, "private_id":i.privateUUID} for i in list(lobby.users.values())]})
 
 	async def create_user(self, user:str, action: str, payload: dict):
-		# payload {chosenID: "Geo", "privateUUID":1234-1234567-1234}
-		# if  payload["has_record"] is False:
-			
-		# current_user = User(publicName=payload['chosenID'])
+		# payload {chosenID: "Geo", "privateUUID":1234-1234567-1234, "server_comm":ServerComms()}
 		current_user = User()
+		self.user_to_scs[current_user.privateUUID] = payload["server_comm"]
 		# current_user.privateUUID = payload['privateUUID']
 		self.waiting_lobby.users[str(current_user.privateUUID)] = current_user
 
