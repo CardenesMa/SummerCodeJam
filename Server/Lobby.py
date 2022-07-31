@@ -15,7 +15,7 @@ class Lobby:
 	@staticmethod
 	def user_to_score_summary(userEntry):
 		k, v = userEntry
-		return {"score": v.score, "public_name": v.public_name, "public_id": k}
+		return {"score": v.score, "public_name": v.public_name, "rivate_id": k}
 
 
 	def game_summary(self) -> list[dict]:
@@ -32,7 +32,7 @@ class Lobby:
 		sentences=[]
 		for (_, i) in self.users:
 			temp_sent = {
-				"public_id": i.privateUUID,
+				"private_id": i.privateUUID,
 				"public_name" : i.publicName,
 				"text" : i.sentence,
 				"votes" : i.score//1000

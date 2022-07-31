@@ -19,7 +19,7 @@ class User:
 		self.score = 0
 		self.socket_id: int
 		self.sentence = None
-		self.lobby_id: uuid.UUID
+		self.lobby_id: str
 		self.waiting_lobby = Lobby()
 	
 		
@@ -49,7 +49,7 @@ class ServerComms:
 			print("Incoming Packet: ", data)
 			# jsonify packet
 			json_data = json.loads(data)
-			await self.handle_client_action(json_data["payload"]["privateUUID"], json_data["action"], json_data)
+			await self.handle_client_action(json_data["payload"]["private_id"], json_data["action"], json_data)
 		# handle appropriate exceptions
 		except SyntaxError as e:
 			print("Syntax Error : Invalid JSON recieved")
@@ -97,18 +97,14 @@ class ServerManager:
 	by an action. 
 	"""
 	
-	def __init__(self, websocket, client_id : int):
+	def __init__(self):
 		"""This should be created under the @app.websocket("/ws/client_id") decorator
-
-		Args:
-			websocket : (WebSocket): The webscocket which the communications will go through
-			client_id (int): the identification of the websocket
 		"""
-		self.server_comms = ServerComms(websocket)
+		self.server_comms = None
 		self.lobbies = []
 		# private UUID : User
 		self.users = {}
-		self.client_id = client_id
+		self.client_id = None
 		self.waiting_lobby = Lobby()
 
 		self.prompt_words = ["Racoon", "Clam", "Weezer", "Lancelot", "Abdullah", "P!ATD", "Taiwan", "Fidget Spinner", "Lamp"]
@@ -131,14 +127,19 @@ class ServerManager:
 			self.create_lobby,
 			self.create_user       
 		]
-		self.attach_client_handlers()
 		
-	async def connect(self):
-		return await self.server_comms.connect()
+		
+	async def connect(self, websocket, client_id):
+		self.server_comms = ServerComms(websocket)
+		self.client_id = client_id
+		await self.server_comms.connect()
+		self.attach_client_handlers()
+  
 	async def listen(self):
 		await self.server_comms.recieve()
+  
 	async def disconnect(self, user):
-		await self.send_server_action_to_lobby(user, "USER_DISCONNECT", {{"public_id" : user, "public_name" : self.users[user].publicName}})
+		await self.send_server_action_to_lobby(user, "USER_DISCONNECT", {{"private_id" : user, "public_name" : self.users[user].publicName}})
 		lobby = self.users[user].lobby_id
 		del self.lobbies[self.lobbies.index(lobby)].users[user]
   # eventually this should remove the user from a lobby to keep people up to date
@@ -160,24 +161,23 @@ class ServerManager:
 		# crate packet
 		action_msg = json.dumps({'action':action, 'payload': payload})
 		# send the packet 
-		await self.server_comms.websocket.send_text(action_msg)
+		await self.users[user].websocket.send_text(action_msg)
 		print(f"sent message action : {action}, payload : {payload} to {str(self.users[user].publicName)}")
 		
   
 	async def send_server_action_to_lobby(self, user:str, action:str, payload:dict):
 		# broadcast to lobby
 		lobby = self.findLobby(self.users[user].lobby_id)
-		if lobby:
-			for user in lobby.users:
-				self.send(user,action,payload)
-				print(f"boradcasted {action}, {payload} to lobby: {user.lobby_id}")
-		else:
-			print(f"no lobby: {user.lobby_id} found")
+		print(lobby.users)
+		for user in lobby.users:
+			await self.send(user,action,payload)
+			print(f"boradcasted {action}, {payload} to lobby: {self.users[user].lobby_id}")
+
 		
 ##### HELPER FUNCTIONS ########
 	def findLobby(self, lobbyId):
 		for lobby in self.lobbies:
-			if lobby.lobby_id == lobbyId:
+			if lobby.lobby_id == int(lobbyId):
 				return lobby
 		print(f"No Lobby {lobbyId} Exists")
 	
@@ -192,36 +192,37 @@ class ServerManager:
 		lobby = Lobby()
 		lobby.users[user] = self.users[user]
 		self.lobbies.append(lobby)
-		print(self.lobbies)
+		lobby.users[user].publicName = payload['public_name']
+		self.users[user].lobby_id = lobby.lobby_id
 		# do we also want to have the user join the lobby here?
-		await self.send(user, "CREATE_LOBBY", {"lobby_id" : lobby.lobby_id})
+		await self.send(user, "ACK_JOIN", {"lobby_id" : lobby.lobby_id, 'users':[{"public_name" : i.publicName, "private_id":i.privateUUID} for i in list(lobby.users.values())]})
 
 	async def create_user(self, user:str, action: str, payload: dict):
 		# payload {chosenID: "Geo", "privateUUID":1234-1234567-1234}
-		if  payload["has_record"] is False:
+		# if  payload["has_record"] is False:
 			
-			# current_user = User(publicName=payload['chosenID'])
-			current_user = User()
-			# current_user.privateUUID = payload['privateUUID']
-			self.waiting_lobby.users[str(current_user.privateUUID)] = current_user
-	
-			self.users[str(current_user.privateUUID)] = current_user
+		# current_user = User(publicName=payload['chosenID'])
+		current_user = User()
+		# current_user.privateUUID = payload['privateUUID']
+		self.waiting_lobby.users[str(current_user.privateUUID)] = current_user
 
-			payload = {
-				'private_id': str(current_user.privateUUID),
-				 'public_id': current_user.publicName, 
-				 # we won't have the public name if has_record == false
-			}
+		self.users[str(current_user.privateUUID)] = current_user
 
-			await self.send(str(current_user.privateUUID), "USER_INFO", payload)
-			print('User Created!')
-		else:
-			existing_user = self.users[user]
-			payload = {
-				"privateUUID" : str(existing_user.privateUUID),
-				"publicName" : existing_user.publicName,
-			}
-			await self.send(user, "USER_INFO", payload)
+		payload = {
+			'private_id': str(current_user.privateUUID),
+				'public_name': current_user.publicName, 
+				# we won't have the public name if has_record == false
+		}
+
+		await self.send(str(current_user.privateUUID), "USER_INFO", payload)
+		print('User Created!')
+		# else:
+		# 	existing_user = self.users[user]
+		# 	payload = {
+		# 		"private_id" : str(existing_user.privateUUID),
+		# 		"public_name" : existing_user.publicName,
+		# 	}
+		# 	await self.send(user, "USER_INFO", payload)
 
 
 	async def join_lobby(self, user, action, payload):
@@ -232,12 +233,13 @@ class ServerManager:
 		print(current_lobby.users, self.waiting_lobby.users)
 		current_lobby.users[user] = self.waiting_lobby.users[user]
 		current_lobby.users[user].lobby_id = payload['lobby_id']
+		current_lobby.users[user].publicName = payload['public_name']
 		# delete from waiting lobby
 		del self.waiting_lobby.users[user]
 		
 		found_user = self.users[user]
-		await self.send(user, "ACK_JOIN", {'lobby_id': payload['lobby_id'], 'users':[{"public_name" : i.publicName, "public_id":i.privateUUID} for i in list(current_lobby.users.keys())]})
-		await self.send_server_action_to_lobby(user, "USER_CONNECT", {{"public_id" : found_user.privateUUID, "public_name": found_user.publicName}})
+		await self.send(user, "ACK_JOIN", {'lobby_id': payload['lobby_id'], 'users':[{"public_name" : i.publicName, "private_id":i.privateUUID} for i in list(current_lobby.users.values())]})
+		await self.send_server_action_to_lobby(user, "USER_CONNECT", {"private_id" : found_user.privateUUID, "public_name": found_user.publicName})
 
 
 	async def start_game(self, user, action:str, payload:dict):
@@ -265,7 +267,7 @@ class ServerManager:
 		
 
 	async def request_user_info(self, user, action:str, payload:dict):
-		await self.send(user, "USER_INFO", {"publicName":"DefaultName", "privateUUID" : self.users[user].publicUUID})
+		await self.send(user, "USER_INFO", {"public_name":"DefaultName", "private_id" : self.users[user].publicUUID})
 
 	async def vote_for_publicUUID(self, user, action:str, payload:dict):
 		# add the score to our local user list

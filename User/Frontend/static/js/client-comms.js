@@ -1,6 +1,6 @@
-const WSPORT = ":10000";
+const WSPORT = ":8000";
 const PROTOCOL = "ws://"
-
+const PATH = "/ws/10"
 
 
 
@@ -16,8 +16,8 @@ class ClientComms {
     constructor(openCallback,
         closeCallback,
         options = { attemptReconnect: true }) {
-        const hostname = window.location.hostname || "localhost"
-        this.websocket = new WebSocket(PROTOCOL + hostname + WSPORT);
+        const hostname = window.location.host || ("localhost" + WSPORT)
+        this.websocket = new WebSocket(PROTOCOL + hostname + PATH);
         this.eventCallbacks = new Object();
 
 
@@ -187,7 +187,7 @@ const PayloadIds = {
     // user info / connect payload
     hasRecord: "has_record",
     privateId: "private_id",
-    publicId: "public_id",
+    publicId: "private_id",
     publicName: "public_name",
 
     ////// user connected/disconnected to lobby payload /////
@@ -703,9 +703,10 @@ class ClientManager {
             this.state.global.publicId == null ||
             this.state.global.publicName == null) {
             payload[PayloadIds.hasRecord] = false;
+            payload[PayloadIds.privateId] = ""
         } else {
             payload[PayloadIds.hasRecord]  = true;
-            payload[PayloadIds.privateId]  = this.state.global.privateId;
+            payload[PayloadIds.privateId]  = "";
             payload[PayloadIds.publicId]   = this.state.global.publicId;
             payload[PayloadIds.publicName] = this.state.global.publicName;
         }
