@@ -1,6 +1,6 @@
 const WSPORT = ":10000";
 const PROTOCOL = "ws://"
-
+const PATH = "/ws"
 
 
 
@@ -16,8 +16,8 @@ class ClientComms {
     constructor(openCallback,
         closeCallback,
         options = { attemptReconnect: true }) {
-        const hostname = window.location.hostname || "localhost"
-        this.websocket = new WebSocket(PROTOCOL + hostname + WSPORT);
+        const hostname = window.location.host || ("localhost" + WSPORT);
+        this.websocket = new WebSocket(PROTOCOL + hostname + PATH);
         this.eventCallbacks = new Object();
 
 
