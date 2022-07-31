@@ -1,17 +1,34 @@
-// class for storing states 
-function states() {
-    return {
-        joinedLobby : false,
-        gameStarted : false,
-        submittedSentence : false,
-        awaitingSentences : true,
-        voted : false,
-        awaitingVotes : true,
+const ClientGUIStatesEnum = {
+    homepage: "HomePage",
+    joinedLobby: "JoinedLobby",
+    submittingSenteces: "SubmittingSentences",
+    awaitingSentences: "AwaitingSentences", // TODO possbily deprecate these states/screens
+    voting: "Voting",
+    awaitingVotes: "AwaitingVotes", // TODO possibly deprecate these states/screens
+    voteResults: "VoteResults",
+    gameResult: "GameResult",
+
+    default(chosenName="", publicId="") {
+        return {
+            state: this.homepage,
+            data: {
+                hasChosenName: false
+            },
+            global: {
+                chosenName: chosenName,
+                publicId: publicId,
+                awaiting_request: false,
+                roundPrompt: "",
+                roundNum: 0,
+            },
+            formatName(displayName, publicId) {
+                return (publicId === this.global.publicId) ? displayName + " [You]" : displayName;
+            }
+        }
     }
 }
 
-document.addEventListener('alpine:init', () => {
-    // initial states
-    Alpine.store('states', states());
-
-});
+const ClientGUILobbyDefaultState = {
+    users: [],
+    id: ""
+}
