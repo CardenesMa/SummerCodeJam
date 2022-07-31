@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse
 app = FastAPI()
 
 # keeping the html data seperate to de-clog this file
+
 with open("./User/Frontend/home.html", "r") as f:
     html  = f.read()
 
