@@ -3,6 +3,8 @@ import uuid
 from fastapi import WebSocket, WebSocketDisconnect
 import json
 from Lobby import Lobby
+import asyncio
+import sentence
 
 
 #   listening for commands
@@ -19,6 +21,7 @@ class User:
 		self.sentence = None
 		self.lobby_id: uuid.UUID
 		self.waiting_lobby = Lobby()
+	
 		
 
 class ServerComms:
@@ -115,10 +118,9 @@ class ServerManager:
 		"JOIN_LOBBY",
 		"SUBMIT_SENTENCE",
 		"START_GAME",
-		"VoteForPublicUUID",
+		"SUBMIT_VOTE",
 		"CREATE_LOBBY",
-		"CreateUser", # Should be "CONNECT"
-		"Authenticate"
+		"CONNECT"
 	]
 		# all the handlers, IN ORDER with the list above
 		self.handlers_enum = [
@@ -127,8 +129,7 @@ class ServerManager:
 			self.start_game,
 			self.vote_for_publicUUID,
 			self.create_lobby,
-			self.create_user,
-			self.authenticate        
+			self.create_user       
 		]
 		self.attach_client_handlers()
 		
@@ -136,9 +137,11 @@ class ServerManager:
 		return await self.server_comms.connect()
 	async def listen(self):
 		await self.server_comms.recieve()
-	def disconnect(self):
-		pass
-		# eventually this should remove the user from a lobby to keep people up to date
+	async def disconnect(self, user):
+		await self.send_server_action_to_lobby(user, "USER_DISCONNECT", {{"public_id" : user, "public_name" : self.users[user].publicName}})
+		lobby = self.users[user].lobby_id
+		del self.lobbies[self.lobbies.index(lobby)].users[user]
+  # eventually this should remove the user from a lobby to keep people up to date
 
 
 	def attach_client_handlers(self):
@@ -161,10 +164,9 @@ class ServerManager:
 		print(f"sent message action : {action}, payload : {payload} to {str(self.users[user].publicName)}")
 		
   
-	async def send_server_action_to_lobby(self, user:User, action:str, payload:dict):
+	async def send_server_action_to_lobby(self, user:str, action:str, payload:dict):
 		# broadcast to lobby
-		lobby_id = user.lobby_id
-		lobby = self.findLobby(user.lobby_id)
+		lobby = self.findLobby(self.users[user].lobby_id)
 		if lobby:
 			for user in lobby.users:
 				self.send(user,action,payload)
@@ -179,24 +181,24 @@ class ServerManager:
 				return lobby
 		print(f"No Lobby {lobbyId} Exists")
 	
-	def findUserInLobby(self,lobby,target_privateUUID):
+	def find(self,lobby,target_privateUUID):
 		for user in lobby.users:
 			if user.privateUUID == target_privateUUID: 
 				return True 
 		return False
 ###################################
 				
-	async def create_lobby(self,user, action, payload):
+	async def create_lobby(self, user, action, payload):
 		lobby = Lobby()
 		lobby.users[user] = self.users[user]
 		self.lobbies.append(lobby)
 		print(self.lobbies)
 		# do we also want to have the user join the lobby here?
-		await self.send(user, "CREATED_LOBBY", {"lobby_id" : lobby.lobby_id})
+		await self.send(user, "CREATE_LOBBY", {"lobby_id" : lobby.lobby_id})
 
 	async def create_user(self, user:str, action: str, payload: dict):
 		# payload {chosenID: "Geo", "privateUUID":1234-1234567-1234}
-		if payload["has_record"] == "false":
+		if  payload["has_record"] is False:
 			
 			# current_user = User(publicName=payload['chosenID'])
 			current_user = User()
@@ -206,8 +208,9 @@ class ServerManager:
 			self.users[str(current_user.privateUUID)] = current_user
 
 			payload = {
-				'privateUUID': str(current_user.privateUUID),
-				'publicName': current_user.publicName, 
+				'private_id': str(current_user.privateUUID),
+				 'public_id': current_user.publicName, 
+				 # we won't have the public name if has_record == false
 			}
 
 			await self.send(str(current_user.privateUUID), "USER_INFO", payload)
@@ -215,7 +218,7 @@ class ServerManager:
 		else:
 			existing_user = self.users[user]
 			payload = {
-				"privateUUID" : existing_user.privateUUID,
+				"privateUUID" : str(existing_user.privateUUID),
 				"publicName" : existing_user.publicName,
 			}
 			await self.send(user, "USER_INFO", payload)
@@ -228,11 +231,13 @@ class ServerManager:
 		# add the user to the correct_lobby
 		print(current_lobby.users, self.waiting_lobby.users)
 		current_lobby.users[user] = self.waiting_lobby.users[user]
+		current_lobby.users[user].lobby_id = payload['lobby_id']
 		# delete from waiting lobby
 		del self.waiting_lobby.users[user]
 		
-		#ToDo: Add lobbid to sent payload!!
-		await self.send(user, "ACK_JOIN", {'lobby_id': payload['lobby_id']})
+		found_user = self.users[user]
+		await self.send(user, "ACK_JOIN", {'lobby_id': payload['lobby_id'], 'users':[{"public_name" : i.publicName, "public_id":i.privateUUID} for i in list(current_lobby.users.keys())]})
+		await self.send_server_action_to_lobby(user, "USER_CONNECT", {{"public_id" : found_user.privateUUID, "public_name": found_user.publicName}})
 
 
 	async def start_game(self, user, action:str, payload:dict):
@@ -243,29 +248,39 @@ class ServerManager:
 		# fidn the lobby to start the game
 		target_lobby = self.findLobby(lobby_id)
 		# broadcast the word to all the users
-		for user in target_lobby.users:
-			await self.send(str(target_lobby.users[user].privateUUID), "SEND_PROMPT", {"prompt":word})
+		await self.send_server_action_to_lobby(str(target_lobby.users[user].privateUUID), "SEND_PROMPT", {"prompt":word})
 			
-
 	async def send_sentence(self, user, action:str, payload:dict):
-		self.users[user].sentence = payload["sentence"]
+		if random.random() > 0.75:
+			sentence = sentence.alter_sentence(payload["sentence"])
+		else:
+			sentence = payload["sentence"]
+		self.users[user].sentence = sentence
+		lobby = self.findLobby(self.users[user].lobby_id)
+		lobby.users[user].sentence = sentence
 
+		if lobby.everyone_sent_message():
+			self.send_server_action_to_lobby(user, "SEND_SENT", {'sentences': lobby.game_summary()} )
+		print('THIS is the', f'{user} sentence: ', self.users[user].sentence)
+		
 
 	async def request_user_info(self, user, action:str, payload:dict):
 		await self.send(user, "USER_INFO", {"publicName":"DefaultName", "privateUUID" : self.users[user].publicUUID})
 
 	async def vote_for_publicUUID(self, user, action:str, payload:dict):
-		# there has to be a better way than n^2 time to do this. I'd reccomend using a hashmap or sending the user lobby
-		# in the packet, but for now this is what we have.
-		for lob in self.lobbies:
-			for usr in lob.users:
-				if usr.privateUUID == user:
-					usr.score += 1
-					break 
-					
+		# add the score to our local user list
+		self.users[user].score += 1000 
+		# find the correct lobby to display the score
+		current_lobby = self.findLobby(self.users[user].lobby_id)
+		# add th score to the user in the lobby
+		current_lobby[user].score += 1000
+		# determine whether or not everyone voted
+		total_score = sum(list(current_lobby.score_summary().keys()))
+		if current_lobby[user].score != 0 and total_score % len(current_lobby.users)*1000 == 0:
+			await self.send_server_action_to_lobby(user, "ROUND_RES", {current_lobby.round_summary()})
+			await asyncio.sleep(5)
+			await self.send_server_action_to_lobby(user, "GAME_RES", {'scores': current_lobby.score_summary()})
 
-	async def authenticate(self, user, action:str, payload:dict):
-		pass
 
 
 # ToDo List:
@@ -276,7 +291,7 @@ class ServerManager:
 var ws = new WebSocket("ws://127.0.0.1:8000/ws/2");
 function run() {
     
-    packet = {action:"CreateUser", payload:{privateUUID:""}};
+    packet = {action:"CreateUser", payload:{privateUUID:"", has_record: 'False'}};
     ws.send(JSON.stringify(packet));
     id = "";
     lobbyid = "";
@@ -286,20 +301,23 @@ function run() {
         switch(ev.action){
             case ("USER_INFO"):
                 id = ev.payload.privateUUID;
-                packet = {action:"CreateLobby",payload:{privateUUID:id}};
+                packet = {action:"CREATE_LOBBY",payload:{privateUUID:id}};
                 ws.send(JSON.stringify(packet));
                 break;
             case ("CREATE_LOBBY"):
                 lobbyid = ev.payload.lobby_id;
-                packet = {action:"JoinLobby", payload:{privateUUID:id, lobby_id:lobbyid}};
+                packet = {action:"JOIN_LOBBY", payload:{privateUUID:id, lobby_id:lobbyid}};
                 ws.send(JSON.stringify(packet));
                 break;
             case ("ACK_JOIN"):
-                packet = {action:"StartGame", payload:{privateUUID:id,lobby_id:lobbyid}};
+                packet = {action:"START_GAME", payload:{privateUUID:id,lobby_id:lobbyid}};
+                ws.send(JSON.stringify(packet));
+                break;
+            case ("SEND_PROMPT"):
+                packet = {action:"SUBMIT_SENTENCE", payload:{privateUUID:id,sentence:" POKEMON, GOTTA CATCH EM ALL"}};
                 ws.send(JSON.stringify(packet));
                 break;
 
-                
         }
     
     });
