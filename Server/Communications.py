@@ -14,7 +14,7 @@ import sentence
 class User:
 	def __init__(self, publicName: str = "DefultName"):
 		# self.publicUUID=uuid.uuid4() # not sure how this is going to work with it all but we have it 
-		self.privateUUID = uuid.uuid4()
+		self.privateUUID = str(uuid.uuid4())
 		self.publicName = publicName
 		self.score = 0
 		self.socket_id: int

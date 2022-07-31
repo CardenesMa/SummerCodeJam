@@ -30,7 +30,7 @@ class Lobby:
 
 	def make_sentenceResults_type(self):
 		sentences=[]
-		for i in self.users:
+		for (_, i) in self.users:
 			temp_sent = {
 				"public_id": i.privateUUID,
 				"public_name" : i.publicName,
@@ -48,7 +48,7 @@ class Lobby:
     
 	def everyone_sent_message(self) -> bool:
 		temp = True
-		for user in self.users:
+		for (_ ,user) in self.users:
 			if not user.sentence:
 				temp = False
 		return temp
