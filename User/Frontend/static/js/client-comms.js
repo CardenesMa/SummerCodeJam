@@ -1,5 +1,5 @@
 const WSPORT = ":5000";
-const PROTOCOL = "wss://"
+const PROTOCOL = "ws://"
 const PATH = "/ws/10"
 
 

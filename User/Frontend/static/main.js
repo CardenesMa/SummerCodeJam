@@ -100,3 +100,10 @@ function timerComponent(periodInMs, callback) {
 function sendVote(manager, id) {
     manager.requestVote(id);
 }
+
+function newGame() {
+    // override onbeforeunload 
+    window.onbeforeunload = null;   
+    // refresh page
+    window.location.reload();
+}
