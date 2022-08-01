@@ -33,7 +33,7 @@ app.mount("/static", StaticFiles(directory="User/Frontend"), name="static")
 @app.get("/")
 async def get():
     # return "Hello World"
-    return FileResponse('../User/Frontend/main.html')
+    return FileResponse('User/Frontend/main.html')
 
 if __name__ == "__main__":
     import uvicorn
