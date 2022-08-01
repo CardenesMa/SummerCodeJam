@@ -2,9 +2,9 @@ import random
 import uuid
 from fastapi import WebSocket, WebSocketDisconnect
 import json
-from Lobby import Lobby
+from Server.Lobby import Lobby
 import asyncio
-import sentence as Sentence
+import Server.sentence as Sentence
 from colorama import Fore, Back, Style
 
 
