@@ -1,1 +1,1 @@
-web: gunicorn -w 4 -k uvicorn.workers.UvicornWorker --app-dir ./server app:app
+web: uvicorn --app-dir ./server app:app
