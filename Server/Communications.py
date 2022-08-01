@@ -4,7 +4,9 @@ from fastapi import WebSocket, WebSocketDisconnect
 import json
 from Lobby import Lobby
 import asyncio
-import sentence
+import sentence as Sentence
+from colorama import Fore, Back, Style
+
 
 
 #   listening for commands
@@ -21,6 +23,7 @@ class User:
 		self.sentence = None
 		self.lobby_id: str
 		self.waiting_lobby = Lobby()
+		self.voted = False
 	
 		
 
@@ -45,7 +48,7 @@ class ServerComms:
 		"""Used to listen to the websocket and execute commands as needed.
 		"""
 		try:
-			print("Incoming Packet: ", data)
+			print(Fore.BLUE + "Incoming: ", data)
 			# jsonify packet
 			json_data = json.loads(data)
 			await self.handle_client_action(json_data["payload"]["private_id"], json_data["action"], json_data)
@@ -162,16 +165,15 @@ class ServerManager:
 		action_msg = json.dumps({'action':action, 'payload': payload})
 		# send the packet 
 		await self.user_to_scs[user].websocket.send_text(action_msg)
-		print(f"sent message action : {action}, payload : {payload} to {str(self.users[user].publicName)}")
+		print(Fore.GREEN + f"Outgoing: {action}, payload : {payload} to {str(self.users[user].publicName)}")
 		
   
 	async def send_server_action_to_lobby(self, user:str, action:str, payload:dict):
 		# broadcast to lobby
 		lobby = self.findLobby(self.users[user].lobby_id)
-		print(lobby.users)
 		for user in lobby.users:
 			await self.send(user,action,payload)
-			print(f"boradcasted {action}, {payload} to lobby: {self.users[user].lobby_id}")
+			print(Fore.GREEN + f"Outgoing:  {action}, {payload} to lobby: {self.users[user].lobby_id}")
 
 		
 ##### HELPER FUNCTIONS ########
@@ -214,21 +216,16 @@ class ServerManager:
 
 		await self.send(str(current_user.privateUUID), "USER_INFO", payload)
 		print('User Created!')
-		# else:
-		# 	existing_user = self.users[user]
-		# 	payload = {
-		# 		"private_id" : str(existing_user.privateUUID),
-		# 		"public_name" : existing_user.publicName,
-		# 	}
-		# 	await self.send(user, "USER_INFO", payload)
 
 
 	async def join_lobby(self, user, action, payload):
 		# find the correc lobby id to join
   
 		current_lobby = self.findLobby(payload['lobby_id'])
+		if current_lobby is None:
+			print("No lobby found... doing nothing")
+			return 
 		# add the user to the correct_lobby
-		print(current_lobby.users, self.waiting_lobby.users)
 		current_lobby.users[user] = self.waiting_lobby.users[user]
 		current_lobby.users[user].lobby_id = payload['lobby_id']
 		current_lobby.users[user].publicName = payload['public_name']
@@ -237,7 +234,7 @@ class ServerManager:
 		
 		found_user = self.users[user]
 		await self.send(user, "ACK_JOIN", {'lobby_id': payload['lobby_id'], 'users':[{"public_name" : i.publicName, "private_id":i.privateUUID} for i in list(current_lobby.users.values())]})
-		await self.send_server_action_to_lobby(user, "USER_CONNECT", {"private_id" : found_user.privateUUID, "public_name": found_user.publicName})
+		await self.send_server_action_to_lobby(user, "USER_CONNECT", {"user":{"private_id" : found_user.privateUUID, "public_name": found_user.publicName}})
 
 
 	async def start_game(self, user, action:str, payload:dict):
@@ -252,15 +249,17 @@ class ServerManager:
 			
 	async def send_sentence(self, user, action:str, payload:dict):
 		if random.random() > 0.75:
-			sentence = sentence.alter_sentence(payload["sentence"])
+			sentence = Sentence.alter_sentence(payload["sentence"])
 		else:
 			sentence = payload["sentence"]
 		self.users[user].sentence = sentence
 		lobby = self.findLobby(self.users[user].lobby_id)
 		lobby.users[user].sentence = sentence
+		lobby.users[user].voted = True
+		self.users[user].voted = True
 
 		if lobby.everyone_sent_message():
-			self.send_server_action_to_lobby(user, "SEND_SENT", {'sentences': lobby.game_summary()} )
+			await self.send_server_action_to_lobby(user, "SEND_SENT", {'sentences': lobby.game_summary()} )
 		print('THIS is the', f'{user} sentence: ', self.users[user].sentence)
 		
 
@@ -272,14 +271,18 @@ class ServerManager:
 		self.users[user].score += 1000 
 		# find the correct lobby to display the score
 		current_lobby = self.findLobby(self.users[user].lobby_id)
+		current_lobby.users[user].score += 1000
 		# add th score to the user in the lobby
-		current_lobby[user].score += 1000
 		# determine whether or not everyone voted
-		total_score = sum(list(current_lobby.score_summary().keys()))
-		if current_lobby[user].score != 0 and total_score % len(current_lobby.users)*1000 == 0:
-			await self.send_server_action_to_lobby(user, "ROUND_RES", {current_lobby.round_summary()})
+		if current_lobby.all_users_voted():
+			await self.send_server_action_to_lobby(user, "ROUND_RES", current_lobby.round_summary())
 			await asyncio.sleep(5)
 			await self.send_server_action_to_lobby(user, "GAME_RES", {'scores': current_lobby.score_summary()})
+			await self.reset(user, current_lobby)
+
+	async def reset(self, user:str, lobby:Lobby):
+		self.lobbies.remove(lobby)
+		self.users[user].voted = False
 
 
 

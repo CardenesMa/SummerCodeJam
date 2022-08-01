@@ -35,6 +35,6 @@ async def get():
     # return "Hello World"
     return FileResponse('../User/Frontend/main.html')
 
-import uvicorn
 if __name__ == "__main__":
+    import uvicorn
     uvicorn.run("app:app", reload=True)

@@ -40,6 +40,7 @@ class ClientComms {
                 // parse any json objects that might have arrived
                 console.log(ev.data)
                 var jsonObj = JSON.parse(ev.data);
+                console.log("JSONified incoming: " + JSON.stringify(jsonObj))
                 this.handleServerCommand(jsonObj.action, jsonObj);
             } catch (e) {
                 if (e instanceof SyntaxError) {
@@ -421,15 +422,20 @@ class ClientManager {
         let userObj = {
             publicId: payload[PayloadIds.user][PayloadIds.userProps.publicId],
             publicName: payload[PayloadIds.user][PayloadIds.userProps.publicName],
+            // publicId: [PayloadIds.userProps.publicId],
+            // publicName: [PayloadIds.userProps.publicName],
         }
+        if (userObj.publicId == this.state.global.privateId){
+            return
+        } else {
         let userId = userObj.publicId;
 
 
-        // assign to states
-        this.state.global.lobby["users"][userId] = userObj;
-        this.LobbyGuiStateProxy.users.push(userObj);
-        // this.GuiStateProxy.global.lobby["otherPlayers"][userId] = userObj;
-
+            // assign to states
+            this.state.global.lobby["users"][userId] = userObj;
+            this.LobbyGuiStateProxy.users.push(userObj);
+            // this.GuiStateProxy.global.lobby["otherPlayers"][userId] = userObj;
+        }
     }
 
     // this handles the server message informing user x that another user has disconnected
