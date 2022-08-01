@@ -28,7 +28,7 @@ async def websocket_endpoint(websocket:WebSocket, client_id):
     # else:
     #     print("An Error Occured :(")
 
-app.mount("/static", StaticFiles(directory="../User/Frontend"), name="static")
+app.mount("/static", StaticFiles(directory="User/Frontend"), name="static")
 
 @app.get("/")
 async def get():
