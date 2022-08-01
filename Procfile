@@ -1,1 +1,1 @@
-web: uvicorn --app-dir server.app:app
+web: uvicorn --app-dir server app:app
