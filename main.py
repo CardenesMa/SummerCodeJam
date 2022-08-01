@@ -1,6 +1,6 @@
 from typing import List
 import uuid
-import Communications
+import Server.Communications as Communications
 import fastapi
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, HTMLResponse
