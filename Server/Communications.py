@@ -48,7 +48,7 @@ class ServerComms:
 		"""Used to listen to the websocket and execute commands as needed.
 		"""
 		try:
-			print(Fore.BLUE + "Incoming: ", data)
+			# print(Fore.BLUE + "Incoming: ", data)
 			# jsonify packet
 			json_data = json.loads(data)
 			await self.handle_client_action(json_data["payload"]["private_id"], json_data["action"], json_data)
@@ -165,7 +165,7 @@ class ServerManager:
 		action_msg = json.dumps({'action':action, 'payload': payload})
 		# send the packet 
 		await self.user_to_scs[user].websocket.send_text(action_msg)
-		print(Fore.GREEN + f"Outgoing: {action}, payload : {payload} to {str(self.users[user].publicName)}")
+		# print(Fore.GREEN + f"Outgoing: {action}, payload : {payload} to {str(self.users[user].publicName)}")
 		
   
 	async def send_server_action_to_lobby(self, user:str, action:str, payload:dict):
@@ -173,7 +173,7 @@ class ServerManager:
 		lobby = self.findLobby(self.users[user].lobby_id)
 		for user in lobby.users:
 			await self.send(user,action,payload)
-			print(Fore.GREEN + f"Outgoing:  {action}, {payload} to lobby: {self.users[user].lobby_id}")
+			# print(Fore.GREEN + f"Outgoing:  {action}, {payload} to lobby: {self.users[user].lobby_id}")
 
 		
 ##### HELPER FUNCTIONS ########
@@ -258,7 +258,6 @@ class ServerManager:
 		
 		if lobby.everyone_sent_message():
 			await self.send_server_action_to_lobby(user, "SEND_SENT", {'sentences': lobby.game_summary()} )
-		print('THIS is the', f'{user} sentence: ', self.users[user].sentence)
 		
 
 	async def request_user_info(self, user, action:str, payload:dict):
