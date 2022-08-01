@@ -255,9 +255,7 @@ class ServerManager:
 		self.users[user].sentence = sentence
 		lobby = self.findLobby(self.users[user].lobby_id)
 		lobby.users[user].sentence = sentence
-		lobby.users[user].voted = True
-		self.users[user].voted = True
-
+		
 		if lobby.everyone_sent_message():
 			await self.send_server_action_to_lobby(user, "SEND_SENT", {'sentences': lobby.game_summary()} )
 		print('THIS is the', f'{user} sentence: ', self.users[user].sentence)
@@ -272,15 +270,18 @@ class ServerManager:
 		# find the correct lobby to display the score
 		current_lobby = self.findLobby(self.users[user].lobby_id)
 		current_lobby.users[user].score += 1000
+		current_lobby.users[user].voted = True
+		self.users[user].voted = True
+
 		# add th score to the user in the lobby
 		# determine whether or not everyone voted
 		if current_lobby.all_users_voted():
 			await self.send_server_action_to_lobby(user, "ROUND_RES", current_lobby.round_summary())
 			await asyncio.sleep(5)
 			await self.send_server_action_to_lobby(user, "GAME_RES", {'scores': current_lobby.score_summary()})
-			await self.reset(user, current_lobby)
+			self.reset(user, current_lobby)
 
-	async def reset(self, user:str, lobby:Lobby):
+	def reset(self, user:str, lobby:Lobby):
 		self.lobbies.remove(lobby)
 		self.users[user].voted = False
 

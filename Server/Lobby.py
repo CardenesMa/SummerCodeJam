@@ -1,3 +1,4 @@
+from pickle import TRUE
 import uuid
 import random
 
@@ -62,9 +63,11 @@ class Lobby:
 		return temp
 
 	def all_users_voted(self) -> bool:
+		print("HERE")
+		temp = True
 		for user in self.users:
 			user = self.users[user]
-			if user.voted:
-				return True
-		return False
+			if not user.voted:
+				temp = False
+		return temp
 
