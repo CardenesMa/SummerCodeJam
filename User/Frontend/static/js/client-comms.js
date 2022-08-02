@@ -634,14 +634,19 @@ class ClientManager {
     // asks to start the game via button in the lobby. The payload will contain the
     // lobby id and the privateId of the user.
     requestGameStart() {
-        // build payload
-        let payload = {}
-        payload[ClientPayloadId.lobbyId] = this.state.global.lobby.id;
-        payload[ClientPayloadId.privateId] = this.state.global.privateId;
+        if (Object.keys(this.state.global.lobby.users).length < 3){
+            console.log("Not Enough Players to Start")
 
-        // signal awaiting state
-        this.GuiStateProxy.data.sentSentence = true;
-        this.clientComms.sendAction(ClientActionsEnum.StartGame, payload);
+        } else{
+            // build payload
+            let payload = {}
+            payload[ClientPayloadId.lobbyId] = this.state.global.lobby.id;
+            payload[ClientPayloadId.privateId] = this.state.global.privateId;
+
+            // signal awaiting state
+            this.GuiStateProxy.data.sentSentence = true;
+            this.clientComms.sendAction(ClientActionsEnum.StartGame, payload);
+        }
     }
 
 

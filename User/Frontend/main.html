@@ -117,7 +117,7 @@
                   type="radio"
                   value="createLobby"
                   x-model="directive"
-                  x-bind:disabled="$store.gui_state.global.awaiting_request">
+                 >
                   <label class="form-check-label inline-block text-gray-800" for="inlineRadio10">Create Lobby</label>
                 </div>
                 <div class="form-check form-check-inline mx-4">
@@ -126,20 +126,20 @@
                   name="inlineRadioOptions"
                   value="joinLobby"
                   x-model="directive"
-                  x-bind:disabled="$store.gui_state.global.awaiting_request">
+                  >
                   <label class="form-check-label inline-block text-gray-800" for="inlineRadio20">Join Lobby</label>
                 </div>
                 <button type="submit"
                     class="shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded disabled:bg-gray-200 inline-block"
                     type="button"
-                    x-bind:disabled="$store.gui_state.global.awaiting_request">
+                    >
                     Go!
                 </button>
             </div>
             <input x-model="lobbyId" x-bind:required="directive === 'joinLobby'" x-show="directive === 'joinLobby'"
                 class="my-12 appearance-none block w-2/6 bg-gray-200 text-gray-700 border rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white"
                 id="grid-first-name" type="text" placeholder="Enter Your Lobby ID"
-                x-bind:disabled="$store.gui_state.global.awaiting_request">
+                >
             <input x-model="username" required
                 class="appearance-none block w-2/6 bg-gray-200 text-gray-700 border rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white"
                 id="grid-first-name" type="text" placeholder="Enter a Name"
@@ -158,6 +158,7 @@
                     class=" my-1 text-center font-bold text-2xl w-1/6 bg-white text-oxford-blue"></h1>
             </div>
             <div class="h-full shadow-md bg-white px-1 col-span-1 rounded-l-lg">
+                <h2 class="mt-8 text-center text-bold text-sm text-oxford-blue">(3+ players needed to start)</h2>
                 <ul class="relative">
                     <template x-data="" x-for="user in $store.lobby.users">
                         <li class="">
@@ -166,7 +167,7 @@
                 h-12 overflow-hidden text-2xl text-oxford-blue text-ellipsis
                 whitespace-nowrap rounded hover:text-gray-900
                 hover:bg-linen transition
-                duration-300 ease-in-out mt-1"
+                duration-300 ease-in-out mt-1 font-bold"
                                 data-mdb-ripple="true" data-mdb-ripple-color="dark"></div>
                         </li>
                     </template>
@@ -178,7 +179,7 @@
             <div class="flex justify-center items-center ">
                 <button @click="$store.state.manager.requestGameStart()"
                     class="my-4 shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded disabled:opacity-25"
-                    type="button" x-bind:disabled="$store.gui_state.global.awaiting_request"
+                    type="button"
                     >
                     Start Game
                 </button>

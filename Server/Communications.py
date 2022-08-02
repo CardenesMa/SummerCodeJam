@@ -239,11 +239,15 @@ class ServerManager:
 
 	async def start_game(self, user, action:str, payload:dict):
 		# choose a random prompt word
-		word = random.choice(self.prompt_words)
 		lobby_id = payload["lobby_id"]
+		target_lobby = self.findLobby(lobby_id)
+		if len(target_lobby.users) < 3:
+			print("Not Enough Players to Start")
+			return 
+
+		word = random.choice(self.prompt_words)
   
 		# fidn the lobby to start the game
-		target_lobby = self.findLobby(lobby_id)
 		# broadcast the word to all the users
 		await self.send_server_action_to_lobby(str(target_lobby.users[user].privateUUID), "SEND_PROMPT", {"prompt":word})
 			
