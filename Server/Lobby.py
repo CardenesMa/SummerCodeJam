@@ -1,16 +1,19 @@
+import functools
 import uuid
 import random
 
+from .User import User
+
 class Lobby:
 	def __init__(self):
-		# self.publicUUID=uuid.uuid4() # not sure how this is going to work with it all but we have it 
-		self.users : dict = {} 
-		self.lobby_id = random.randint(0,10000)
+		# self.publicUUID=uuid.uuid4() # not sure how this is going to work with it all but we have it
+		self.users : dict[str, User] = {}
+		self.lobby_id = f"{random.randint(0,100_000):06}" # different method forthcoming
 		self.privateUUID = uuid.uuid4()
-  
+
 	def __repr__(self) -> str:
 		return f"Lobby#:{self.lobby_id} with {self.users}"
-    
+
 	@staticmethod
 	def user_to_score_summary(userEntry):
 		k, v = userEntry
@@ -19,8 +22,8 @@ class Lobby:
 
 	def game_summary(self) -> list[dict]:
 		return list(map(Lobby.user_to_score_summary, self.users.items()))
-		
-    
+
+
 	def score_summary(self) -> dict:
 		scores = []
 		for user in self.users:
@@ -33,40 +36,31 @@ class Lobby:
 			scores.append(score_dict)
 		return scores
 
-	def make_sentenceResults_type(self):
-		sentences=[]
-		for i in self.users:
-			i = self.users[i]
-			temp_sent = {
-				"private_id": i.privateUUID,
-				"public_name" : i.publicName,
-				"text" : i.sentence,
-				"votes" : i.score//1000
-			} 
-			sentences.append(temp_sent)
-		return sentences
+	def user_to_sentence_result(self, userId):
+		user = self.users[userId]
+		return {
+			"private_id": user.privateUUID,
+			"public_name": user.publicName,
+			"text": user.sentence,
+			"votes": user.score//1000,
+		}
+
 
 	def round_summary(self):
 		# sort the users decreasingly by score
-		scores = sorted(list(self.users),key=lambda x: self.users[x].score)
-		print("List of Scores", scores)
-		winning_user = self.users[scores[0]]
-		return {"winning_sent" : winning_user.sentence, "other_sents":self.make_sentenceResults_type()}
-    
+		# scores = sorted(list(self.users),key=lambda x: self.users[x].score)
+		maxId = max(self.users.values(), key=lambda u: u.score).privateUUID
+		# print("List of Scores", scores)
+		# winning_user = self.users[scores[0]]
+		return {
+			"winning_sent" : self.user_to_sentence_result(maxId),
+			"other_sents": [self.user_to_sentence_result(k) for k in self.users.keys() if k != maxId]
+			}
+
 	def everyone_sent_message(self) -> bool:
-		temp = True
-		for user in self.users:
-			user = self.users[user]
-			if not user.sentence:
-				temp = False
-		return temp
+		return all(u.sentence for u in self.users.values())
+
 
 	def all_users_voted(self) -> bool:
-		print("HERE")
-		temp = True
-		for user in self.users:
-			user = self.users[user]
-			if not user.voted:
-				temp = False
-		return temp
+		return all(u.voted for u in self.users.values())
 

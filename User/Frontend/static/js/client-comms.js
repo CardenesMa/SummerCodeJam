@@ -1,6 +1,6 @@
 const WSPORT = ":5000";
 const PROTOCOL = "ws://"
-const PATH = "/ws/10"
+const PATH = "/ws"
 
 
 
@@ -196,7 +196,7 @@ const PayloadIds = {
 
     // user object
     userProps: {
-        get publicId() {return PayloadIds.publicId}, // string
+        get userId() {return PayloadIds.privateId}, // string
         get publicName() {return PayloadIds.publicName} // string
     },
 
@@ -225,7 +225,7 @@ const PayloadIds = {
     // each sentence object will contain
     sentenceProps: {
         text: "text", // string
-        get publicId() {return PayloadIds.publicId}, // string
+        get userId() {return PayloadIds.privateId}, // string
         get publicName() {return PayloadIds.publicName} // string
     },
     ////////////////////////////////////////////
@@ -237,7 +237,7 @@ const PayloadIds = {
     // each sentence object will contain
     resultSentenceProps: {
         text: "text",
-        get publicId() {return PayloadIds.publicId},
+        get userId() {return PayloadIds.privateId},
         get publicName() {return PayloadIds.publicName},
         votes: "votes",
     },
@@ -249,7 +249,7 @@ const PayloadIds = {
 
     // score object interface
     scoreProps: {
-        get publicId() {return PayloadIds.publicId},
+        get userId() {return PayloadIds.privateId},
         get publicName() {return PayloadIds.publicName},
         score: "score",
     },
@@ -263,6 +263,7 @@ const ClientPayloadId = {
     privateId: PayloadIds.privateId,
     publicId: PayloadIds.publicId,
     publicName: PayloadIds.publicName,
+    targetId: "target_id",
     sentence: "sentence",
     powerUpId: "power_up_id",
 }
@@ -387,12 +388,10 @@ class ClientManager {
             // assume a message that contains private id will also
             // contain all other fields
             window.localStorage.setItem(ClientStorageEnum.privateId, payload[PayloadIds.privateId]);
-            window.localStorage.setItem(ClientStorageEnum.publicId, payload[PayloadIds.publicId]);
             this.state.global.privateId = payload[PayloadIds.privateId];
-            this.state.global.publicId = payload[PayloadIds.publicId];
 
             // set the gui state
-            this.GuiStateProxy.global.publicId = this.state.global.publicId;
+            this.GuiStateProxy.global.publicId = this.state.global.privateId;
         }
     }
 
@@ -401,12 +400,21 @@ class ClientManager {
     // as well as the lobby id.
     handleLobbyJoin(action, payload) {
         // parse the users payload
-        this.state.global.lobby.users = payload[PayloadIds.lobbyProps.users].map(
-            elem => (
-                {
-                    publicId: elem[PayloadIds.userProps.publicId],
+        this.state.global.lobby.users = payload[PayloadIds.lobbyProps.users].reduce(
+            (acc, elem) => {
+                const userId = elem[PayloadIds.userProps.userId];
+                acc[userId] = {
+                    publicId: elem[PayloadIds.userProps.userId],
                     publicName: elem[PayloadIds.userProps.publicName]
-                }));
+                }
+                return acc;
+            }, {});
+
+        // make sure we are added to the list
+        this.state.global.lobby.users[this.state.global.privateId] = {
+            publicId: this.state.global.publicId,
+            publicName: this.state.global.publicName,
+        }
         this.state.global.lobby.id = payload[PayloadIds.lobbyProps.id];
         this.transtionToState(ClientStateEnum.Lobby);
     }
@@ -420,21 +428,20 @@ class ClientManager {
 
         // parse the payload
         let userObj = {
-            publicId: payload[PayloadIds.user][PayloadIds.userProps.publicId],
+            userId: payload[PayloadIds.user][PayloadIds.userProps.userId],
             publicName: payload[PayloadIds.user][PayloadIds.userProps.publicName],
             // publicId: [PayloadIds.userProps.publicId],
             // publicName: [PayloadIds.userProps.publicName],
         }
-        if (userObj.publicId == this.state.global.privateId){
+        if (userObj.userId == this.state.global.privateId){
             return
         } else {
-        let userId = userObj.publicId;
+        let userId = userObj.userId;
 
 
             // assign to states
             this.state.global.lobby["users"][userId] = userObj;
             this.LobbyGuiStateProxy.users.push(userObj);
-            // this.GuiStateProxy.global.lobby["otherPlayers"][userId] = userObj;
         }
     }
 
@@ -443,16 +450,16 @@ class ClientManager {
     handleUserDisconnect(action, payload) {
         // parse the payload
         let userObj = {
-            publicId: payload[PayloadIds.user][PayloadIds.userProps.publicId],
+            userId: payload[PayloadIds.user][PayloadIds.userProps.userId],
             publicName: payload[PayloadIds.user][PayloadIds.userProps.publicName],
         }
-        let userId = userObj.publicId;
+        let userId = userObj.userId;
 
         console.log("userObj", userObj)
         console.log("userId", userId);
         // delete the user entry, ideally this would be handled in an immutable way
-        this.state.global.lobby.users = this.state.global.lobby.users.filter((el) => (el.publicId !== userId));
-        this.LobbyGuiStateProxy.users = this.LobbyGuiStateProxy.users.filter((el) => (el.publicId != userId));
+        delete this.state.global.lobby.users[userId];
+        this.LobbyGuiStateProxy.users = this.LobbyGuiStateProxy.users.filter((el) => (el.userId != userId));
     }
 
 
@@ -480,10 +487,11 @@ class ClientManager {
     handleSentences(action, payload) {
         this.state.data.judgingEntries = {
             sentences: payload[PayloadIds.sentenceObjects].reduce((acc, el) => {
+                const publicId = el[PayloadIds.sentenceProps.userId];
                 return acc.concat({
                     text: el[PayloadIds.sentenceProps.text],
-                    userPublicId: el[PayloadIds.sentenceProps.publicId],
-                    userPublicName: el[PayloadIds.sentenceProps.publicName],
+                    userId: publicId,
+                    userPublicName: this.state.global.lobby.users[publicId],
                 });
             }, []),
             timeLimit: payload[PayloadIds.timeLimit] || 10, // 10 seconds by default
@@ -495,21 +503,23 @@ class ClientManager {
     //
     handleRoundResult(action, payload) {
         const winningSentence = payload[PayloadIds.winningSentence];
+        const winningUserId = winningSentence[PayloadIds.resultSentenceProps.userId]
         this.state.data.roundResult = {
             // extract the props in winningSentence
             winningSentence: {
                 text: winningSentence[PayloadIds.resultSentenceProps.text],
-                userPublicId: winningSentence[PayloadIds.resultSentenceProps.publicId],
-                userPublicName: winningSentence[PayloadIds.resultSentenceProps.publicName],
+                userId: winningUserId,
+                userPublicName: this.state.global.lobby.users[winningUserId].publicName,
                 votes: winningSentence[PayloadIds.resultSentenceProps.votes],
             },
 
             // extract props in each non-winning sentence
             otherSentences: payload[PayloadIds.otherSentences].reduce((acc, el) => {
+                const userId = el[PayloadIds.resultSentenceProps.userId];
                 return acc.concat({
                     text: el[PayloadIds.resultSentenceProps.text],
-                    userPublicId: el[PayloadIds.resultSentenceProps.publicId],
-                    userPublicName: el[PayloadIds.resultSentenceProps.publicName],
+                    userId: userId,
+                    userPublicName: this.state.global.lobby.users[userId].publicName,
                     votes: el[PayloadIds.resultSentenceProps.votes],
                 });
             }, []),
@@ -524,7 +534,7 @@ class ClientManager {
             scores: payload[PayloadIds.scoreObjects].map(el => ({
                 score: el[PayloadIds.scoreProps.score],
                 publicName: el[PayloadIds.scoreProps.publicName],
-                publicId: el[PayloadIds.scoreProps.publicId],
+                userId: el[PayloadIds.scoreProps.userId],
             }))
         }
         this.transtionToState(ClientStateEnum.GameResult);
@@ -541,7 +551,7 @@ class ClientManager {
             case ClientStateEnum.Lobby: {
                 // Lobby state with possibly joined players
                 this.GuiStateProxy.state = ClientGUIStatesEnum.joinedLobby;
-                this.LobbyGuiStateProxy.users = this.state.global.lobby.users;
+                this.LobbyGuiStateProxy.users = Object.values(this.state.global.lobby.users);
                 this.LobbyGuiStateProxy.id = this.state.global.lobby.id;
                 break;
             }
@@ -661,7 +671,7 @@ class ClientManager {
 
 
         // set gui states and send the payload
-        this.GuiStateProxy.global.awaiting_request = true;
+        this.GuiStateProxy.data.sentSentence = true;
         this.clientComms.sendAction(ClientActionsEnum.SubmitSentence, payload);
     }
 
@@ -675,7 +685,7 @@ class ClientManager {
     // id of the client
     requestVote(publicId) {
         let payload = {}
-        payload[ClientPayloadId.publicId] = publicId;
+        payload[ClientPayloadId.targetId] = publicId;
         payload[ClientPayloadId.privateId] = this.state.global.privateId;
 
         // set the gui states and send
@@ -688,7 +698,6 @@ class ClientManager {
     // and extract locally store data
     setupGlobal() {
         this.state.global.privateId = window.localStorage.getItem(ClientStorageEnum.privateId);
-        this.state.global.publicId = window.localStorage.getItem(ClientStorageEnum.publicId);
         this.state.global.publicName = window.localStorage.getItem(ClientStorageEnum.publicName);
 
         let hasChosenName = this.state.global.publicName != null;
@@ -696,7 +705,7 @@ class ClientManager {
         // set up default gui states
         Alpine.store("gui_state", ClientGUIStatesEnum.default(
             (hasChosenName) ? this.state.global.publicName : undefined,
-            (hasChosenName) ? this.state.global.publicId : undefined)
+            (hasChosenName) ? this.state.global.privateId : undefined)
             );
         this.GuiStateProxy.data.hasChosenName = hasChosenName;
 
@@ -711,14 +720,12 @@ class ClientManager {
 
         let payload = {}
         if (this.state.global.privateId == null ||
-            this.state.global.publicId == null ||
             this.state.global.publicName == null) {
             payload[PayloadIds.hasRecord] = false;
             payload[PayloadIds.privateId] = ""
         } else {
             payload[PayloadIds.hasRecord]  = true;
             payload[PayloadIds.privateId]  = "";
-            payload[PayloadIds.publicId]   = this.state.global.publicId;
             payload[PayloadIds.publicName] = this.state.global.publicName;
         }
 

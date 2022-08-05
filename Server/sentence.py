@@ -11,7 +11,7 @@ def alter_sentence(sentence, options={
     sentence: list = sentence.split()
     out: list = sentence.copy()
 
-    # check options 
+    # check options
     if options["scramble"]:
         word_index = random.randint(0, len(sentence) - 1)
         word = list(sentence[word_index])
@@ -40,11 +40,11 @@ def alter_sentence(sentence, options={
             req = req.json()
             out[word_index ] = random.choice(req[random.choice(list(req.keys()))]["syn"])
         # no synonyms or invalid word
-        except (json.decoder.JSONDecodeError, KeyError):
+        except (json.decoder.JSONDecodeError, KeyError, AttributeError):
             print("Error: No synonyms found for word or API is used up")
             pass
-            
-        
+
+
     # concatenate the sentence
     return " ".join(out)
 

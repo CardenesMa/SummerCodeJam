@@ -9,12 +9,12 @@ from fastapi.staticfiles import StaticFiles
 app = FastAPI()
 manager = Communications.ServerManager()
 
-@app.websocket("/ws/{client_id}")
-async def websocket_endpoint(websocket:WebSocket, client_id):
+@app.websocket("/ws")
+async def websocket_endpoint(websocket:WebSocket):
     servercomms = Communications.ServerComms(websocket)
-    print(f"got websocket connection: {client_id}")
-    await manager.connect(servercomms, client_id)
-    
+    print(f"got websocket connection")
+    await manager.connect(servercomms)
+
     try:
         server_working = True
         while server_working:
@@ -23,12 +23,16 @@ async def websocket_endpoint(websocket:WebSocket, client_id):
             # give the manager that data
             await manager.listen(data, servercomms)
     except WebSocketDisconnect:
-        print(client_id, " left the chat")
-        
+        print("client left the chat")
+
+    finally:
+        await servercomms.disconnect()
+
+
     # else:
     #     print("An Error Occured :(")
 
-app.mount("/static", StaticFiles(directory="User/Frontend"), name="static")
+app.mount("/static", StaticFiles(directory="User/Frontend/static"), name="static")
 
 @app.get("/")
 async def get():

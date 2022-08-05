@@ -9,9 +9,9 @@
     <script>
     </script>
     <!--Main js file. Handles states-->
-    <script src="./static/states.js"></script>
-    <script src="./static/static/main.js"></script>
-    <script src="./static/static/js/client-comms.js"></script>
+    <script src="./static/js/states.js"></script>
+    <script src="./static/js/main.js"></script>
+    <script src="./static/js/client-comms.js"></script>
     <script defer>
         document.addEventListener('alpine:init', () => {
             Alpine.store("state", {
@@ -64,7 +64,7 @@
                     get finalMessage() {
                         winner = this.sortedGameScores[0];
                         // intentional jank, as opposed to all of the unintentional jank seen seen elsewhere in my code
-                        return (winner.publicId === Alpine.store('gui_state').global.publicId) ? "You are a winner!" : "You are [NOT] a winner!"
+                        return (winner.userId === Alpine.store('gui_state').global.publicId) ? "You are a winner!" : "You are [NOT] a winner!"
                     },
                     get finalSubheading() {
                         const roundNum = Alpine.store('gui_state').global.roundNum;
@@ -260,18 +260,18 @@
                             updated on initiation, this is to trigger the transtion
                             on spawn once it gets updated by the init function-> nextick
                     -->
-                <template x-data="" x-for="sentence in $store.gui_state.data.sentences" :key=sentence.userPublicId>
+                <template x-data="" x-for="sentence in $store.gui_state.data.sentences" :key=sentence.userId>
                     <!--Only show the sentence if it isnt an empty string and isnt the player's sentence-->
-                    <template x-data x-if="sentence.text !== null && sentence.text.length > 0 && sentence.userPublicId != $store.gui_state.global.publicId">
+                    <template x-data x-if="sentence.text !== null && sentence.text.length > 0 && sentence.userId != $store.gui_state.global.publicId">
                         <div class="my-4 rounded-lg shadow-sm p-4 border-oxford-blue" x-transition.duration.500ms
                             x-data="{vis: false}" x-show="vis" x-init="$nextTick(() => {vis = true})"
-                            :class="($store.gui_state.data.voted && $store.gui_state.data.votedId == sentence.userPublicId) ? 'bg-linen' : 'bg-ivory'">
+                            :class="($store.gui_state.data.voted && $store.gui_state.data.votedId == sentence.userId) ? 'bg-linen' : 'bg-ivory'">
                             <div class="flex justify-center">
                                     <div class="my-4 text-2xl text-oxford-blue" x-text="sentence.text"></div>
                             </div>
                             <!-- vote button. sendVote needs to change to use an actual id instead. -->
                             <template x-data x-if="!$store.gui_state.data.voted">
-                                <button @click="sendVote($store.state.manager, sentence.userPublicId)"
+                                <button @click="sendVote($store.state.manager, sentence.userId)"
                                     class="w-full h-12 px-6 text-green-100 transition-colors duration-150 bg-green-400
                                            rounded-lg focus:shadow-outline hover:bg-green-500 disabled:bg-gray-200 disabled:opacity-25"
                                            x-bind:disabled="$store.gui_state.data.voted">Vote</button>
@@ -316,7 +316,7 @@
                         <div class="my-4 bg-ivory rounded-lg shadow-sm p-4 border-oxford-blue" x-transition.duration.500ms
                         x-data="{vis: false}" x-show="vis" x-init="$nextTick(() => {vis = true})">
                             <div class="flex flex-row justify-between border-b border-oxford-blue">
-                                <span class="text-oxford-blue" x-text="$store.gui_state.formatName(sentence.userPublicName, sentence.userPublicId)"></span>
+                                <span class="text-oxford-blue" x-text="$store.gui_state.formatName(sentence.userPublicName, sentence.userId)"></span>
                                 <span class="text-gray-800" x-text="'Votes: ' + sentence.votes"></span>
                             </div>
                             <div class="my-4 text-oxford-blue" x-text="sentence.text"></div>
@@ -333,7 +333,7 @@
             <h3 class="mt-2 text-center text-md text-oxford-blue" x-text="finalSubheading"></h3>
 
             <div class="mx-4">
-            <template x-data="gameResults" x-for="score in sortedGameScores" :key="score.publicId">
+            <template x-data="gameResults" x-for="score in sortedGameScores" :key="score.userId">
                 <div class="flex my-4 bg-ivory rounded-lg shadow-sm p-4 border-oxford-blue justify-between" x-transition.duration.500ms
                         x-data="{vis: false}" x-show="vis" x-init="$nextTick(() => {vis = true})">
                         <div class="my-4 text-2xl text-oxford-blue" x-text="score.publicName"></div>
@@ -348,7 +348,7 @@
                     New Game
                 </button>
             </div>
- 
+
 
             </div>
 
